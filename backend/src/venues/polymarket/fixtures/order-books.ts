@@ -120,5 +120,104 @@ export const POLYMARKET_ORDER_BOOKS: VenueOrderBookSnapshot[] = [
       },
     ],
   },
+  {
+    venue: "polymarket",
+    sourceMarketId: "poly-oil-price-2026",
+    timestamp: NOW,
+    outcomes: [
+      {
+        sourceOutcomeId: "poly_yes",
+        bids: [
+          { price: 0.38, size: 400 },
+          { price: 0.36, size: 250 },
+          { price: 0.34, size: 150 },
+        ],
+        asks: [
+          { price: 0.40, size: 400 },
+          { price: 0.42, size: 250 },
+          { price: 0.44, size: 150 },
+        ],
+      },
+      {
+        sourceOutcomeId: "poly_no",
+        bids: [
+          { price: 0.58, size: 400 },
+          { price: 0.56, size: 250 },
+          { price: 0.54, size: 150 },
+        ],
+        asks: [
+          { price: 0.60, size: 400 },
+          { price: 0.62, size: 250 },
+          { price: 0.64, size: 150 },
+        ],
+      },
+    ],
+  },
+  {
+    venue: "polymarket",
+    sourceMarketId: "poly-fed-rate-cut-q2-2026",
+    timestamp: NOW,
+    outcomes: [
+      {
+        sourceOutcomeId: "poly_yes",
+        bids: [
+          { price: 0.43, size: 350 },
+          { price: 0.41, size: 200 },
+          { price: 0.39, size: 150 },
+        ],
+        asks: [
+          { price: 0.45, size: 350 },
+          { price: 0.47, size: 200 },
+          { price: 0.49, size: 150 },
+        ],
+      },
+      {
+        sourceOutcomeId: "poly_no",
+        bids: [
+          { price: 0.53, size: 350 },
+          { price: 0.51, size: 200 },
+          { price: 0.49, size: 150 },
+        ],
+        asks: [
+          { price: 0.55, size: 350 },
+          { price: 0.57, size: 200 },
+          { price: 0.59, size: 150 },
+        ],
+      },
+    ],
+  },
+  {
+    venue: "polymarket",
+    sourceMarketId: "poly-trump-tariff-eu-2026",
+    timestamp: NOW,
+    outcomes: [
+      {
+        sourceOutcomeId: "poly_yes",
+        bids: [
+          { price: 0.62, size: 500 },
+          { price: 0.60, size: 300 },
+          { price: 0.58, size: 200 },
+        ],
+        asks: [
+          { price: 0.64, size: 500 },
+          { price: 0.66, size: 300 },
+          { price: 0.68, size: 200 },
+        ],
+      },
+      {
+        sourceOutcomeId: "poly_no",
+        bids: [
+          { price: 0.34, size: 500 },
+          { price: 0.32, size: 300 },
+          { price: 0.30, size: 200 },
+        ],
+        asks: [
+          { price: 0.36, size: 500 },
+          { price: 0.38, size: 300 },
+          { price: 0.40, size: 200 },
+        ],
+      },
+    ],
+  },
   // `poly-sb-chiefs` is resolved — no live book.
 ];

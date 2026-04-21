@@ -5,3 +5,4 @@ export * from "./price-history.js";
 export * from "./quote.js";
 export * from "./api-dto.js";
 export * from "./error.js";
+export * from "./belief.js";

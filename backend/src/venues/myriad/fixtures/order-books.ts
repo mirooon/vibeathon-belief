@@ -46,4 +46,37 @@ export const MYRIAD_ORDER_BOOKS: VenueOrderBookSnapshot[] = [
       },
     ],
   },
+  {
+    venue: "myriad",
+    sourceMarketId: "myriad-trump-tariff-eu",
+    timestamp: NOW,
+    outcomes: [
+      {
+        sourceOutcomeId: "myriad_yes",
+        bids: [
+          { price: 0.60, size: 200 },
+          { price: 0.58, size: 150 },
+          { price: 0.56, size: 100 },
+        ],
+        asks: [
+          { price: 0.63, size: 200 },
+          { price: 0.65, size: 150 },
+          { price: 0.67, size: 100 },
+        ],
+      },
+      {
+        sourceOutcomeId: "myriad_no",
+        bids: [
+          { price: 0.35, size: 200 },
+          { price: 0.33, size: 150 },
+          { price: 0.31, size: 100 },
+        ],
+        asks: [
+          { price: 0.37, size: 200 },
+          { price: 0.39, size: 150 },
+          { price: 0.41, size: 100 },
+        ],
+      },
+    ],
+  },
 ];

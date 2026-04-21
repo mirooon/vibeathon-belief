@@ -61,6 +61,32 @@ export const KALSHI_MARKETS: VenueMarket[] = [
   },
   {
     venue: "kalshi",
+    sourceMarketId: "kalshi-oil-price-2026",
+    title: "Will Brent crude oil exceed $100 per barrel by Dec 31 2026?",
+    category: "commodities",
+    endDate: "2026-12-31T23:59:59.999Z",
+    status: "open",
+    quoteCurrency: "USD",
+    outcomes: [
+      { sourceOutcomeId: "kalshi_yes", label: "Yes" },
+      { sourceOutcomeId: "kalshi_no", label: "No" },
+    ],
+  },
+  {
+    venue: "kalshi",
+    sourceMarketId: "kalshi-fed-rate-cut-q2-2026",
+    title: "Will the FOMC cut rates by June 2026?",
+    category: "economics",
+    endDate: "2026-06-30T23:59:59.999Z",
+    status: "open",
+    quoteCurrency: "USD",
+    outcomes: [
+      { sourceOutcomeId: "kalshi_yes", label: "Yes" },
+      { sourceOutcomeId: "kalshi_no", label: "No" },
+    ],
+  },
+  {
+    venue: "kalshi",
     sourceMarketId: "kalshi-sb-chiefs",
     title: "Did the Kansas City Chiefs win Super Bowl 2026?",
     category: "sports",

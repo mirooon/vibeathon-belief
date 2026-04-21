@@ -138,5 +138,71 @@ export const KALSHI_ORDER_BOOKS: VenueOrderBookSnapshot[] = [
       },
     ],
   },
+  {
+    venue: "kalshi",
+    sourceMarketId: "kalshi-oil-price-2026",
+    timestamp: NOW,
+    outcomes: [
+      {
+        sourceOutcomeId: "kalshi_yes",
+        bids: [
+          { price: 0.36, size: 300 },
+          { price: 0.34, size: 200 },
+          { price: 0.32, size: 150 },
+        ],
+        asks: [
+          { price: 0.39, size: 300 },
+          { price: 0.41, size: 200 },
+          { price: 0.43, size: 150 },
+        ],
+      },
+      {
+        sourceOutcomeId: "kalshi_no",
+        bids: [
+          { price: 0.59, size: 300 },
+          { price: 0.57, size: 200 },
+          { price: 0.55, size: 150 },
+        ],
+        asks: [
+          { price: 0.61, size: 300 },
+          { price: 0.63, size: 200 },
+          { price: 0.65, size: 150 },
+        ],
+      },
+    ],
+  },
+  {
+    venue: "kalshi",
+    sourceMarketId: "kalshi-fed-rate-cut-q2-2026",
+    timestamp: NOW,
+    outcomes: [
+      {
+        sourceOutcomeId: "kalshi_yes",
+        bids: [
+          { price: 0.41, size: 300 },
+          { price: 0.39, size: 200 },
+          { price: 0.37, size: 150 },
+        ],
+        asks: [
+          { price: 0.44, size: 300 },
+          { price: 0.46, size: 200 },
+          { price: 0.48, size: 150 },
+        ],
+      },
+      {
+        sourceOutcomeId: "kalshi_no",
+        bids: [
+          { price: 0.54, size: 300 },
+          { price: 0.52, size: 200 },
+          { price: 0.50, size: 150 },
+        ],
+        asks: [
+          { price: 0.57, size: 300 },
+          { price: 0.59, size: 200 },
+          { price: 0.61, size: 150 },
+        ],
+      },
+    ],
+  },
   // `kalshi-sb-chiefs` is resolved — no live book.
 ];

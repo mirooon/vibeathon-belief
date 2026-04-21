@@ -107,6 +107,78 @@ export const SEEDED_LOGICAL_MARKETS: LogicalMarket[] = [
     ],
   },
   {
+    id: "oil-price-2026",
+    title: "Will Brent crude exceed $100/barrel by end of 2026?",
+    category: "commodities",
+    endDate: "2026-12-31T23:59:59.999Z",
+    status: "open",
+    quoteCurrency: "USD",
+    outcomes: [
+      { id: "yes", label: "Yes" },
+      { id: "no", label: "No" },
+    ],
+    venueMarkets: [
+      {
+        venue: "polymarket",
+        sourceMarketId: "poly-oil-price-2026",
+        outcomeMap: { poly_yes: "yes", poly_no: "no" },
+      },
+      {
+        venue: "kalshi",
+        sourceMarketId: "kalshi-oil-price-2026",
+        outcomeMap: { kalshi_yes: "yes", kalshi_no: "no" },
+      },
+    ],
+  },
+  {
+    id: "fed-rate-cut-q2-2026",
+    title: "Will the Fed cut interest rates in Q2 2026?",
+    category: "economics",
+    endDate: "2026-06-30T23:59:59.999Z",
+    status: "open",
+    quoteCurrency: "USD",
+    outcomes: [
+      { id: "yes", label: "Yes" },
+      { id: "no", label: "No" },
+    ],
+    venueMarkets: [
+      {
+        venue: "polymarket",
+        sourceMarketId: "poly-fed-rate-cut-q2-2026",
+        outcomeMap: { poly_yes: "yes", poly_no: "no" },
+      },
+      {
+        venue: "kalshi",
+        sourceMarketId: "kalshi-fed-rate-cut-q2-2026",
+        outcomeMap: { kalshi_yes: "yes", kalshi_no: "no" },
+      },
+    ],
+  },
+  {
+    id: "trump-tariff-eu-2026",
+    title: "Will the US impose 25%+ tariffs on EU goods in 2026?",
+    category: "politics",
+    endDate: "2026-12-31T23:59:59.999Z",
+    status: "open",
+    quoteCurrency: "USD",
+    outcomes: [
+      { id: "yes", label: "Yes" },
+      { id: "no", label: "No" },
+    ],
+    venueMarkets: [
+      {
+        venue: "polymarket",
+        sourceMarketId: "poly-trump-tariff-eu-2026",
+        outcomeMap: { poly_yes: "yes", poly_no: "no" },
+      },
+      {
+        venue: "myriad",
+        sourceMarketId: "myriad-trump-tariff-eu",
+        outcomeMap: { myriad_yes: "yes", myriad_no: "no" },
+      },
+    ],
+  },
+  {
     // Resolved market (§5b) — proves status filtering.
     id: "superbowl-2026-chiefs",
     title: "Super Bowl 2026 Winner — Kansas City Chiefs",

@@ -2,6 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import type { MarketStatus, QuoteRequest } from "@vibeahack/shared";
 import { api } from "./client.js";
 
+export function useBeliefSearch(belief: string) {
+  return useQuery({
+    queryKey: ["belief", belief],
+    queryFn: () => api.searchBelief({ belief, limit: 5 }),
+    enabled: belief.trim().length >= 3,
+    staleTime: 30_000,
+  });
+}
+
 export function useHealth() {
   return useQuery({
     queryKey: ["health"],
