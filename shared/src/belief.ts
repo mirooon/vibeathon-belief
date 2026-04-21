@@ -8,6 +8,7 @@ export const BeliefSearchRequestSchema = z.object({
   minScore: z.number().min(0).max(1).optional().default(0),
 });
 export type BeliefSearchRequest = z.infer<typeof BeliefSearchRequestSchema>;
+export type BeliefSearchRequestInput = z.input<typeof BeliefSearchRequestSchema>;
 
 export const BeliefMatchSchema = z.object({
   market: MarketListItemSchema,

@@ -4,7 +4,7 @@ import {
   MarketDetailSchema,
   MarketListResponseSchema,
   QuoteResponseSchema,
-  type BeliefSearchRequest,
+  type BeliefSearchRequestInput,
   type BeliefSearchResponse,
   type HealthResponse,
   type MarketDetail,
@@ -79,7 +79,7 @@ export const api = {
     );
   },
 
-  searchBelief(req: BeliefSearchRequest): Promise<BeliefSearchResponse> {
+  searchBelief(req: BeliefSearchRequestInput): Promise<BeliefSearchResponse> {
     return fetch(`${API_URL}/belief/search`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
