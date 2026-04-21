@@ -120,10 +120,18 @@ export class MarketsService {
 
     const items: MarketListItem[] = [];
     for (const market of markets) {
-      const snapshots = await this.snapshotModel
+      const allSnaps = await this.snapshotModel
         .find({ logicalMarketId: market._id })
+        .sort({ timestamp: -1 })
         .lean<SnapshotDoc[]>()
         .exec();
+      const seenSnaps = new Set<string>();
+      const snapshots = allSnaps.filter((s) => {
+        const key = `${s.venue}:${s.sourceMarketId}`;
+        if (seenSnaps.has(key)) return false;
+        seenSnaps.add(key);
+        return true;
+      });
 
       const bestByOutcome = computeBestPrices(snapshots);
       const venues = Array.from(
@@ -144,7 +152,7 @@ export class MarketsService {
         id: market._id,
         title: market.title,
         category: market.category,
-        endDate: market.endDate.toISOString(),
+        endDate: market.endDate?.toISOString() ?? null,
         status: market.status,
         quoteCurrency: market.quoteCurrency,
         venues,
@@ -192,10 +200,19 @@ export class MarketsService {
       );
     }
 
-    const snapshots = await this.snapshotModel
+    const allSnapshots = await this.snapshotModel
       .find({ logicalMarketId: id })
+      .sort({ timestamp: -1 })
       .lean<SnapshotDoc[]>()
       .exec();
+    // Keep only the latest snapshot per venue+sourceMarketId
+    const seen = new Set<string>();
+    const snapshots = allSnapshots.filter((s) => {
+      const key = `${s.venue}:${s.sourceMarketId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
     const histories = await this.priceHistoryModel
       .find({ logicalMarketId: id })

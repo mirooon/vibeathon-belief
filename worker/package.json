@@ -1,0 +1,24 @@
+{
+  "name": "@vibeahack/worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vibeahack data sync worker — fetches live market data from Polymarket",
+  "scripts": {
+    "start": "node dist/main.js",
+    "start:dev": "tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@vibeahack/shared": "*",
+    "mongoose": "8.8.1",
+    "node-cron": "^3.0.3",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "22.9.0",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "4.19.2",
+    "typescript": "5.6.3"
+  }
+}
