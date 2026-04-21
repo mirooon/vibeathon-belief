@@ -79,6 +79,15 @@ export const venueMarketSchema = new Schema(
     status: { type: String, required: true, enum: ["open", "closed", "resolved"] },
     quoteCurrency: { type: String, required: true, default: "USD" },
     outcomes: { type: [VenueNativeOutcomeSchema], required: true },
+    // Live data fields written by the worker
+    image: { type: String },
+    icon: { type: String },
+    description: { type: String },
+    featured: { type: Boolean },
+    conditionId: { type: String },
+    clobTokenIds: { type: [String] },
+    volume: { type: Number },
+    liquidity: { type: Number },
   },
   {
     timestamps: true,

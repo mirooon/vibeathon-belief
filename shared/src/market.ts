@@ -72,5 +72,14 @@ export const VenueMarketSchema = z.object({
   status: MarketStatusSchema,
   quoteCurrency: QuoteCurrencySchema,
   outcomes: z.array(VenueMarketOutcomeSchema).min(2),
+  // Live data fields — absent in Phase 1 fixture adapters
+  image: z.string().url().optional(),
+  icon: z.string().url().optional(),
+  description: z.string().optional(),
+  featured: z.boolean().optional(),
+  conditionId: z.string().optional(),
+  clobTokenIds: z.array(z.string()).optional(),
+  volume: z.number().optional(),
+  liquidity: z.number().optional(),
 });
 export type VenueMarket = z.infer<typeof VenueMarketSchema>;
