@@ -23,8 +23,25 @@ export async function runMarketSync(): Promise<void> {
   const VenueMarket = getVenueMarketModel();
   let upserted = 0;
 
+  const now = Date.now();
+  let skipped = 0;
+
   for (const m of markets) {
-    if (!m.clobTokenIds?.length || !m.outcomes?.length) continue;
+    if (!m.clobTokenIds?.length || !m.outcomes?.length) {
+      skipped++;
+      continue;
+    }
+    if (m.acceptingOrders === false || m.enableOrderBook === false) {
+      skipped++;
+      continue;
+    }
+    if (m.endDate) {
+      const end = new Date(m.endDate).getTime();
+      if (!isNaN(end) && end <= now) {
+        skipped++;
+        continue;
+      }
+    }
 
     const logicalMarketId = `polymarket-${m.id}`;
     const status = toStatus(m);
@@ -93,5 +110,5 @@ export async function runMarketSync(): Promise<void> {
     upserted++;
   }
 
-  console.log(`[market-sync] upserted ${upserted} markets`);
+  console.log(`[market-sync] upserted ${upserted} markets (skipped ${skipped})`);
 }

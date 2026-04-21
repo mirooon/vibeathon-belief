@@ -15,6 +15,8 @@ export interface PolyApiMarket {
   active: boolean;
   closed: boolean;
   archived: boolean;
+  acceptingOrders: boolean;
+  enableOrderBook: boolean;
   featured: boolean;
   image: string;
   icon: string;
@@ -75,7 +77,12 @@ export async function fetchMarketPage(
   offset: number,
   limit = 100,
 ): Promise<PolyApiMarket[]> {
-  const url = `${API_BASE}/markets?limit=${limit}&offset=${offset}&closed=false&active=true&order=volume&ascending=false`;
+  const endDateMin = new Date().toISOString();
+  const url =
+    `${API_BASE}/markets?limit=${limit}&offset=${offset}` +
+    `&closed=false&active=true&archived=false` +
+    `&end_date_min=${encodeURIComponent(endDateMin)}` +
+    `&order=volume24hr&ascending=false`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Polymarket /markets ${res.status} at offset ${offset}`);
   const data = (await res.json()) as unknown[];
