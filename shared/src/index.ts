@@ -1,5 +1,6 @@
 export * from "./venue.js";
 export * from "./market.js";
+export * from "./event.js";
 export * from "./orderbook.js";
 export * from "./price-history.js";
 export * from "./quote.js";

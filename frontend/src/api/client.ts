@@ -1,11 +1,15 @@
 import {
   BeliefSearchResponseSchema,
+  EventDetailSchema,
+  EventListResponseSchema,
   HealthResponseSchema,
   MarketDetailSchema,
   MarketListResponseSchema,
   QuoteResponseSchema,
   type BeliefSearchRequestInput,
   type BeliefSearchResponse,
+  type EventDetail,
+  type EventListResponse,
   type HealthResponse,
   type MarketDetail,
   type MarketListResponse,
@@ -22,6 +26,12 @@ export interface MarketsFilter {
   venues?: Venue[];
   sortBy?: MarketSortField;
   sortOrder?: MarketSortOrder;
+}
+
+export interface EventsFilter {
+  status?: MarketStatus;
+  venue?: Venue;
+  featured?: boolean;
 }
 
 const API_URL: string =
@@ -85,5 +95,24 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(req),
     }).then((r) => handle(r, (raw) => BeliefSearchResponseSchema.parse(raw)));
+  },
+
+  listEvents(filter?: EventsFilter): Promise<EventListResponse> {
+    const params = new URLSearchParams();
+    if (filter?.status) params.set("status", filter.status);
+    if (filter?.venue) params.set("venue", filter.venue);
+    if (filter?.featured !== undefined) {
+      params.set("featured", filter.featured ? "true" : "false");
+    }
+    const qs = params.toString();
+    return fetch(`${API_URL}/events${qs ? `?${qs}` : ""}`).then((r) =>
+      handle(r, (raw) => EventListResponseSchema.parse(raw)),
+    );
+  },
+
+  getEvent(id: string): Promise<EventDetail> {
+    return fetch(`${API_URL}/events/${encodeURIComponent(id)}`).then((r) =>
+      handle(r, (raw) => EventDetailSchema.parse(raw)),
+    );
   },
 };

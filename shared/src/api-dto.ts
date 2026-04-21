@@ -109,6 +109,78 @@ export const MarketDetailSchema = z.object({
 export type MarketDetail = z.infer<typeof MarketDetailSchema>;
 
 /**
+ * GET /events — list item. One row per LogicalEvent.
+ * Volume/liquidity aggregate child markets; bestAsk per outcome is the YES
+ * best-ask of the corresponding child market (used for leaderboard rendering
+ * in mutually-exclusive events like "Who wins X?").
+ */
+export const EventOutcomeRowSchema = z.object({
+  childMarketId: z.string().min(1),
+  label: z.string().min(1),
+  // For mutually-exclusive events: the probability this row "wins" = YES-ask of child.
+  // For non-ME events (standalone binaries) this is still the child's YES-ask.
+  bestAsk: z.number().min(0).max(1).nullable(),
+  bestBid: z.number().min(0).max(1).nullable(),
+});
+export type EventOutcomeRow = z.infer<typeof EventOutcomeRowSchema>;
+
+export const EventListItemSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  slug: z.string().optional(),
+  image: z.string().url().optional(),
+  icon: z.string().url().optional(),
+  category: z.string().min(1),
+  endDate: z.string().datetime(),
+  status: MarketStatusSchema,
+  mutuallyExclusive: z.boolean(),
+  venues: z.array(VenueSchema).min(1),
+  childMarketCount: z.number().int().min(1),
+  // Top outcome rows for preview (capped at e.g. 4). Full list lives on detail.
+  topOutcomes: z.array(EventOutcomeRowSchema),
+  volume24h: z.number().min(0),
+  liquidity: z.number().min(0),
+  featured: z.boolean(),
+});
+export type EventListItem = z.infer<typeof EventListItemSchema>;
+
+export const EventListResponseSchema = z.object({
+  items: z.array(EventListItemSchema),
+  cursor: z.string().nullable(),
+});
+export type EventListResponse = z.infer<typeof EventListResponseSchema>;
+
+/**
+ * GET /events/:id — full event detail with every child market's current prices.
+ */
+export const EventDetailOutcomeSchema = EventOutcomeRowSchema.extend({
+  venue: VenueSchema,
+  sourceMarketId: z.string().min(1),
+  endDate: z.string().datetime(),
+});
+export type EventDetailOutcome = z.infer<typeof EventDetailOutcomeSchema>;
+
+export const EventDetailSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  slug: z.string().optional(),
+  description: z.string().optional(),
+  image: z.string().url().optional(),
+  icon: z.string().url().optional(),
+  category: z.string().min(1),
+  endDate: z.string().datetime(),
+  status: MarketStatusSchema,
+  mutuallyExclusive: z.boolean(),
+  venues: z.array(VenueSchema).min(1),
+  outcomes: z.array(EventDetailOutcomeSchema),
+  volume24h: z.number().min(0),
+  volume: z.number().min(0),
+  liquidity: z.number().min(0),
+  featured: z.boolean(),
+});
+export type EventDetail = z.infer<typeof EventDetailSchema>;
+
+/**
  * GET /api/v1/health.
  */
 export const HealthResponseSchema = z.object({

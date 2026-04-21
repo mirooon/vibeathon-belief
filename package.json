@@ -24,6 +24,7 @@
     "dev:full": "./scripts/dev-full.sh",
     "dev:full:seed": "./scripts/dev-full.sh --seed",
     "dev:full:down": "./scripts/dev-full.sh --down",
+    "dev:worker": "npm run start:dev --workspace=worker",
     "bootstrap": "./scripts/bootstrap.sh",
     "build:shared": "npm run build --workspace=shared",
     "build:backend": "npm run build --workspace=backend",

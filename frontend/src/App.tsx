@@ -1,6 +1,8 @@
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { useHealth } from "./api/hooks.js";
 import { Belief } from "./pages/Belief.js";
+import { Event } from "./pages/Event.js";
+import { Events } from "./pages/Events.js";
 import { Market } from "./pages/Market.js";
 import { Markets } from "./pages/Markets.js";
 import logoSrc from "./assets/logo_lifi_dark_horizontal.svg";
@@ -55,7 +57,8 @@ function HealthDot() {
 
 export function App() {
   const location = useLocation();
-  const isMarkets = location.pathname === "/";
+  const isEvents = location.pathname === "/";
+  const isMarkets = location.pathname === "/markets";
   const isBelief = location.pathname === "/belief";
 
   return (
@@ -67,7 +70,8 @@ export function App() {
           </Link>
           <span className="nav-divider" />
           <div className="nav-links">
-            <Link to="/" className={`nav-link ${isMarkets ? "active" : ""}`}>Markets</Link>
+            <Link to="/" className={`nav-link ${isEvents ? "active" : ""}`}>Events</Link>
+            <Link to="/markets" className={`nav-link ${isMarkets ? "active" : ""}`}>Markets</Link>
           </div>
           <Link to="/belief" style={{ textDecoration: "none" }}>
             <span
@@ -111,7 +115,9 @@ export function App() {
       </nav>
       <main className="container">
         <Routes>
-          <Route path="/" element={<Markets />} />
+          <Route path="/" element={<Events />} />
+          <Route path="/events/:id" element={<Event />} />
+          <Route path="/markets" element={<Markets />} />
           <Route path="/markets/:id" element={<Market />} />
           <Route path="/belief" element={<Belief />} />
         </Routes>
