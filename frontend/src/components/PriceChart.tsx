@@ -30,8 +30,8 @@ export function PriceChart({ histories, selectedOutcomeId, onSelectOutcome, outc
   const [showPerVenue, setShowPerVenue] = useState(true);
   const history = histories.find((h) => h.outcomeId === selectedOutcomeId);
 
-  const data = useMemo(() => {
-    if (!history) return [];
+  const { data, yDomain } = useMemo(() => {
+    if (!history) return { data: [], yDomain: [0, 1] as [number, number] };
     const byTs = new Map<string, Record<string, number | string>>();
     for (const p of history.unified) {
       byTs.set(p.timestamp, { timestamp: p.timestamp, unified: p.price });
@@ -43,9 +43,22 @@ export function PriceChart({ histories, selectedOutcomeId, onSelectOutcome, outc
         byTs.set(p.timestamp, row);
       }
     }
-    return [...byTs.entries()]
+    const rows = [...byTs.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([, v]) => v);
+
+    const nums = rows.flatMap((r) =>
+      Object.entries(r)
+        .filter(([k]) => k !== "timestamp")
+        .map(([, v]) => v as number)
+    );
+    const minVal = Math.min(...nums);
+    const maxVal = Math.max(...nums);
+    const pad = Math.max((maxVal - minVal) * 0.15, 0.03);
+    const lo = Math.max(0, Math.round((minVal - pad) * 20) / 20);
+    const hi = Math.min(1, Math.round((maxVal + pad) * 20) / 20);
+
+    return { data: rows, yDomain: [lo, hi] as [number, number] };
   }, [history]);
 
   return (
@@ -101,7 +114,7 @@ export function PriceChart({ histories, selectedOutcomeId, onSelectOutcome, outc
                 tick={{ fill: "var(--ink-500)", fontSize: 11, fontFamily: "var(--font-mono)" }}
               />
               <YAxis
-                domain={[0, 1]}
+                domain={yDomain}
                 tickFormatter={(v) => `${Math.round((v as number) * 100)}%`}
                 stroke="var(--ink-500)"
                 tick={{ fill: "var(--ink-500)", fontSize: 11, fontFamily: "var(--font-mono)" }}
