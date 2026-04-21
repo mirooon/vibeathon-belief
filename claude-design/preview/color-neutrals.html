@@ -1,0 +1,24 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:var(--bg-page);color:var(--fg-1);font-family:var(--font-body)}
+  .wrap{padding:20px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .sw{border-radius:var(--r-sm);aspect-ratio:1.4/1;display:flex;flex-direction:column;justify-content:flex-end;padding:10px;border:1px solid rgba(255,255,255,.05)}
+  .n{font-size:11px;font-weight:500}
+  .h{font-family:var(--font-mono);font-size:10px;opacity:.7;margin-top:2px}
+  .dark .n,.dark .h{color:#F4F4F5}
+  .light .n,.light .h{color:#0A0A0B}
+</style></head>
+<body><div class="wrap">
+  <div class="sw dark" style="background:#000000"><span class="n">ink 0</span><span class="h">#000000</span></div>
+  <div class="sw dark" style="background:#0A0A0B"><span class="n">ink 50</span><span class="h">#0A0A0B</span></div>
+  <div class="sw dark" style="background:#121214"><span class="n">ink 100</span><span class="h">#121214</span></div>
+  <div class="sw dark" style="background:#1A1A1D"><span class="n">ink 200</span><span class="h">#1A1A1D</span></div>
+  <div class="sw dark" style="background:#26262A"><span class="n">ink 300</span><span class="h">#26262A</span></div>
+  <div class="sw dark" style="background:#3A3A40"><span class="n">ink 400</span><span class="h">#3A3A40</span></div>
+  <div class="sw dark" style="background:#5A5A63"><span class="n">ink 500</span><span class="h">#5A5A63</span></div>
+  <div class="sw dark" style="background:#8A8A94"><span class="n">ink 600</span><span class="h">#8A8A94</span></div>
+  <div class="sw light" style="background:#B4B4BD"><span class="n">ink 700</span><span class="h">#B4B4BD</span></div>
+  <div class="sw light" style="background:#F4F4F5;border-color:#E0E0E4"><span class="n">ink 900</span><span class="h">#F4F4F5</span></div>
+</div></body></html>

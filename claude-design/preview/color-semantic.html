@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:var(--bg-page);color:var(--fg-1);font-family:var(--font-body)}
+  .wrap{padding:24px;display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .sw{border:1px solid var(--border-subtle);border-radius:var(--r-md);padding:14px;display:flex;align-items:center;gap:14px;background:var(--bg-card)}
+  .chip{width:48px;height:48px;border-radius:var(--r-sm);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;color:#0A0A0B;font-weight:600}
+  .meta{display:flex;flex-direction:column;gap:2px}
+  .name{font-size:13px;font-weight:500}
+  .hex{font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+</style></head>
+<body><div class="wrap">
+  <div class="sw"><div class="chip" style="background:#34D399">OK</div><div class="meta"><span class="name">Success</span><span class="hex">#34D399 · filled, positive</span></div></div>
+  <div class="sw"><div class="chip" style="background:#FBBF24">!</div><div class="meta"><span class="name">Warning</span><span class="hex">#FBBF24 · slippage, caution</span></div></div>
+  <div class="sw"><div class="chip" style="background:#F87171">✕</div><div class="meta"><span class="name">Danger</span><span class="hex">#F87171 · error, failed tx</span></div></div>
+  <div class="sw"><div class="chip" style="background:#5C67FF;color:#fff">i</div><div class="meta"><span class="name">Info</span><span class="hex">#5C67FF · reuses brand blue</span></div></div>
+</div></body></html>

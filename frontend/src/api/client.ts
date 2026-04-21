@@ -1,7 +1,9 @@
 import {
+  HealthResponseSchema,
   MarketDetailSchema,
   MarketListResponseSchema,
   QuoteResponseSchema,
+  type HealthResponse,
   type MarketDetail,
   type MarketListResponse,
   type MarketStatus,
@@ -51,5 +53,11 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(req),
     }).then((r) => handle(r, (raw) => QuoteResponseSchema.parse(raw)));
+  },
+
+  getHealth(): Promise<HealthResponse> {
+    return fetch(`${API_URL}/health`).then((r) =>
+      handle(r, (raw) => HealthResponseSchema.parse(raw)),
+    );
   },
 };

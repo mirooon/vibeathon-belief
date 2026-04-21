@@ -2,6 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import type { MarketStatus, QuoteRequest } from "@vibeahack/shared";
 import { api } from "./client.js";
 
+export function useHealth() {
+  return useQuery({
+    queryKey: ["health"],
+    queryFn: () => api.getHealth(),
+    refetchInterval: 15_000,
+    retry: false,
+  });
+}
+
 export function useMarkets(filter?: { status?: MarketStatus }) {
   return useQuery({
     queryKey: ["markets", filter?.status ?? "all"],

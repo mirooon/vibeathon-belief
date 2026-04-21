@@ -1,0 +1,234 @@
+/* =========================================================
+   LI.FI Design System — Colors & Type tokens
+   Source of truth for colors: li.fi/brand-guidelines/
+   Pink #F7C2FF · Blue #5C67FF are the two brand colors.
+   The product surfaces (li.fi marketing site, Jumper app) live
+   on near-black backgrounds with high-contrast white type and
+   the pink/blue used as accents + a pink→blue gradient.
+   ========================================================= */
+
+/* ---------- Webfonts ----------
+   LI.FI ships with GT America as its primary display + body typeface
+   (a neo-grotesque — the real brand font, now loaded locally from fonts/).
+   JetBrains Mono is used for mono (//eyebrow tags, code, chain addresses).
+*/
+@font-face { font-family:'GT America'; font-weight:100; font-style:normal;  src:url('fonts/GT-America-Thin.otf')           format('opentype'); font-display:swap; }
+@font-face { font-family:'GT America'; font-weight:100; font-style:italic;  src:url('fonts/GT-America-Thin-Italic.otf')    format('opentype'); font-display:swap; }
+@font-face { font-family:'GT America'; font-weight:200; font-style:normal;  src:url('fonts/GT-America-Ultra-Light.otf')    format('opentype'); font-display:swap; }
+@font-face { font-family:'GT America'; font-weight:200; font-style:italic;  src:url('fonts/GT-America-Ultra-Light-Italic.otf') format('opentype'); font-display:swap; }
+@font-face { font-family:'GT America'; font-weight:300; font-style:normal;  src:url('fonts/GT-America-Light.otf')          format('opentype'); font-display:swap; }
+@font-face { font-family:'GT America'; font-weight:300; font-style:italic;  src:url('fonts/GT-America-Light-Italic.otf')   format('opentype'); font-display:swap; }
+@font-face { font-family:'GT America'; font-weight:400; font-style:normal;  src:url('fonts/GT-America-Regular.otf')        format('opentype'); font-display:swap; }
+@font-face { font-family:'GT America'; font-weight:400; font-style:italic;  src:url('fonts/GT-America-Regular-Italic.otf') format('opentype'); font-display:swap; }
+@font-face { font-family:'GT America'; font-weight:500; font-style:normal;  src:url('fonts/GT-America-Medium.otf')         format('opentype'); font-display:swap; }
+@font-face { font-family:'GT America'; font-weight:500; font-style:italic;  src:url('fonts/GT-America-Medium-Italic.otf')  format('opentype'); font-display:swap; }
+@font-face { font-family:'GT America'; font-weight:700; font-style:normal;  src:url('fonts/GT-America-Bold.otf')           format('opentype'); font-display:swap; }
+@font-face { font-family:'GT America'; font-weight:700; font-style:italic;  src:url('fonts/GT-America-Bold-Italic.otf')    format('opentype'); font-display:swap; }
+@font-face { font-family:'GT America'; font-weight:900; font-style:normal;  src:url('fonts/GT-America-Black.otf')          format('opentype'); font-display:swap; }
+@font-face { font-family:'GT America'; font-weight:900; font-style:italic;  src:url('fonts/GT-America-Black-Italic.otf')   format('opentype'); font-display:swap; }
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ================ CORE BRAND COLORS ================ */
+  --lifi-pink:        #F7C2FF;   /* brand pink  — hero accent */
+  --lifi-blue:        #5C67FF;   /* brand blue  — hero accent (RGB 92,103,225 per guidelines; #5C67FF is the hex shown) */
+  --lifi-pink-rgb:    247, 194, 255;
+  --lifi-blue-rgb:    92, 103, 255;
+
+  /* Brand gradient — pink → blue, signature diagonal */
+  --lifi-gradient:    linear-gradient(135deg, #F7C2FF 0%, #5C67FF 100%);
+  --lifi-gradient-soft: linear-gradient(135deg, rgba(247,194,255,0.15) 0%, rgba(92,103,255,0.15) 100%);
+
+  /* ================ NEUTRAL SCALE (dark-first) ================ */
+  --ink-0:            #000000;   /* pure black page background */
+  --ink-50:           #0A0A0B;   /* section bg */
+  --ink-100:          #121214;   /* raised panel */
+  --ink-200:          #1A1A1D;   /* card */
+  --ink-300:          #26262A;   /* border / divider strong */
+  --ink-400:          #3A3A40;   /* border default */
+  --ink-500:          #5A5A63;   /* muted foreground */
+  --ink-600:          #8A8A94;   /* tertiary text */
+  --ink-700:          #B4B4BD;   /* secondary text */
+  --ink-800:          #D8D8DC;   /* near-white */
+  --ink-900:          #F4F4F5;   /* primary text on dark */
+  --white:            #FFFFFF;
+
+  /* ================ SEMANTIC (status) ================ */
+  --success:          #34D399;   /* green for profit / complete */
+  --warning:          #FBBF24;
+  --danger:           #F87171;
+  --info:             #5C67FF;   /* reuse brand blue */
+
+  /* ================ SURFACE TOKENS ================ */
+  --bg-page:          var(--ink-0);
+  --bg-section:       var(--ink-50);
+  --bg-panel:         var(--ink-100);
+  --bg-card:          var(--ink-200);
+  --bg-elevated:      #1F1F23;
+
+  --fg-1:             var(--ink-900);   /* primary */
+  --fg-2:             var(--ink-700);   /* secondary / body */
+  --fg-3:             var(--ink-600);   /* tertiary / captions */
+  --fg-muted:         var(--ink-500);
+
+  --border-default:   var(--ink-400);
+  --border-subtle:    var(--ink-300);
+  --border-strong:    var(--ink-500);
+
+  --accent:           var(--lifi-pink);
+  --accent-alt:       var(--lifi-blue);
+
+  /* ================ TYPE FAMILIES ================ */
+  --font-display:     'GT America', 'Helvetica Neue', system-ui, sans-serif;
+  --font-body:        'GT America', 'Helvetica Neue', system-ui, sans-serif;
+  --font-mono:        'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ================ TYPE SCALE ================ */
+  --fs-display-xl:    clamp(56px, 7vw, 96px);   /* hero */
+  --fs-display-lg:    clamp(44px, 5.5vw, 72px);
+  --fs-display-md:    clamp(36px, 4.5vw, 56px);
+  --fs-h1:            40px;
+  --fs-h2:            32px;
+  --fs-h3:            24px;
+  --fs-h4:            20px;
+  --fs-body-lg:       18px;
+  --fs-body:          16px;
+  --fs-body-sm:       14px;
+  --fs-caption:       12px;
+  --fs-eyebrow:       13px;   /* for //section_name tags */
+
+  --lh-tight:         1.05;
+  --lh-heading:       1.15;
+  --lh-body:          1.5;
+  --lh-loose:         1.65;
+
+  --ls-display:       -0.03em;  /* tight for big type */
+  --ls-heading:       -0.02em;
+  --ls-body:           0em;
+  --ls-eyebrow:        0.02em;
+  --ls-mono:           0em;
+
+  /* ================ SPACING (4px base) ================ */
+  --s-0:   0;
+  --s-1:   4px;
+  --s-2:   8px;
+  --s-3:   12px;
+  --s-4:   16px;
+  --s-5:   20px;
+  --s-6:   24px;
+  --s-8:   32px;
+  --s-10:  40px;
+  --s-12:  48px;
+  --s-16:  64px;
+  --s-20:  80px;
+  --s-24:  96px;
+  --s-32:  128px;
+
+  /* ================ RADII ================ */
+  --r-xs:    4px;
+  --r-sm:    8px;
+  --r-md:    12px;
+  --r-lg:    16px;   /* cards */
+  --r-xl:    24px;   /* widget / panels */
+  --r-2xl:   32px;
+  --r-pill:  999px;
+
+  /* ================ SHADOWS / ELEVATION ================ */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.35);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.45);
+  --shadow-xl: 0 24px 80px rgba(0,0,0,.55);
+  --shadow-glow-pink: 0 0 40px rgba(247,194,255,0.25);
+  --shadow-glow-blue: 0 0 40px rgba(92,103,255,0.35);
+
+  /* ================ MOTION ================ */
+  --ease-standard:  cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out-soft:  cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast:       120ms;
+  --dur-base:       200ms;
+  --dur-slow:       400ms;
+}
+
+/* =========================================================
+   Semantic elements — apply these to get LI.FI typography
+   without worrying about the raw tokens.
+   ========================================================= */
+body {
+  font-family: var(--font-body);
+  font-size:   var(--fs-body);
+  line-height: var(--lh-body);
+  color:       var(--fg-1);
+  background:  var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, .h1 {
+  font-family: var(--font-display);
+  font-size:   var(--fs-display-lg);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
+  font-weight: 500;   /* LI.FI hero is medium, not heavy */
+  margin: 0;
+}
+h2, .h2 {
+  font-family: var(--font-display);
+  font-size:   var(--fs-display-md);
+  line-height: var(--lh-heading);
+  letter-spacing: var(--ls-display);
+  font-weight: 500;
+  margin: 0;
+}
+h3, .h3 {
+  font-family: var(--font-display);
+  font-size:   var(--fs-h2);
+  line-height: var(--lh-heading);
+  letter-spacing: var(--ls-heading);
+  font-weight: 500;
+  margin: 0;
+}
+h4, .h4 {
+  font-family: var(--font-display);
+  font-size:   var(--fs-h3);
+  line-height: var(--lh-heading);
+  letter-spacing: var(--ls-heading);
+  font-weight: 500;
+  margin: 0;
+}
+p, .body {
+  font-size:   var(--fs-body);
+  line-height: var(--lh-body);
+  color:       var(--fg-2);
+  margin: 0;
+}
+small, .caption {
+  font-size:   var(--fs-caption);
+  line-height: var(--lh-body);
+  color:       var(--fg-3);
+}
+
+/* Signature LI.FI eyebrow — e.g. //by_the_numbers, //for_developers */
+.eyebrow, code.eyebrow {
+  font-family: var(--font-mono);
+  font-size:   var(--fs-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  color:       var(--fg-3);
+  text-transform: none;
+  font-weight: 500;
+}
+.eyebrow::before { content: "//"; color: var(--lifi-pink); margin-right: 2px; }
+
+/* Code */
+code, pre, kbd {
+  font-family: var(--font-mono);
+  font-size:   var(--fs-body-sm);
+}
+
+/* Gradient headline helper */
+.gradient-text {
+  background: var(--lifi-gradient);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+}

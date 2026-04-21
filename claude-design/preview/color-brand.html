@@ -1,0 +1,18 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:var(--bg-page);color:var(--fg-1);font-family:var(--font-body)}
+  .wrap{padding:24px;display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .sw{border:1px solid var(--border-subtle);border-radius:var(--r-md);padding:14px;display:flex;align-items:center;gap:14px;background:var(--bg-card)}
+  .chip{width:56px;height:56px;border-radius:var(--r-md);flex-shrink:0;border:1px solid rgba(255,255,255,.06)}
+  .meta{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .name{font-size:13px;font-weight:500;color:var(--fg-1)}
+  .hex{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);letter-spacing:.02em}
+</style></head>
+<body><div class="wrap">
+  <div class="sw"><div class="chip" style="background:#F7C2FF"></div><div class="meta"><span class="name">LI.FI Pink</span><span class="hex">#F7C2FF · rgb 247 194 255</span></div></div>
+  <div class="sw"><div class="chip" style="background:#5C67FF"></div><div class="meta"><span class="name">LI.FI Blue</span><span class="hex">#5C67FF · rgb 92 103 255</span></div></div>
+  <div class="sw"><div class="chip" style="background:linear-gradient(135deg,#F7C2FF 0%,#5C67FF 100%)"></div><div class="meta"><span class="name">Brand Gradient 135°</span><span class="hex">pink → blue, hero + headlines</span></div></div>
+  <div class="sw"><div class="chip" style="background:radial-gradient(circle at 30% 30%,rgba(247,194,255,.6),transparent 70%),radial-gradient(circle at 70% 70%,rgba(92,103,255,.6),transparent 70%),#000"></div><div class="meta"><span class="name">Hero Halo</span><span class="hex">soft radial glow on black</span></div></div>
+</div></body></html>

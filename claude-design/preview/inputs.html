@@ -1,0 +1,34 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;background:var(--bg-page);padding:24px;font-family:var(--font-body);color:#F4F4F5}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .input{display:flex;flex-direction:column;gap:6px}
+  label{font-size:11px;color:#8A8A94;font-family:var(--font-mono)}
+  .field{background:#121214;border:1px solid #26262A;border-radius:12px;padding:14px;display:flex;align-items:center;gap:10px;transition:border .15s}
+  .field:focus-within{border-color:#5C67FF}
+  input{background:transparent;border:0;color:#F4F4F5;flex:1;font:inherit;outline:none;font-size:15px}
+  .num{font-variant-numeric:tabular-nums;font-size:20px;font-weight:500}
+  .chip{background:#1A1A1D;border:1px solid #3A3A40;border-radius:999px;padding:5px 10px 5px 5px;display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
+  .chip .tok{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#627EEA,#8A9BEA);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700}
+</style></head>
+<body>
+  <div class="grid">
+    <div class="input">
+      <label>from</label>
+      <div class="field">
+        <span class="num">1.2450</span>
+        <span style="color:#8A8A94;font-size:12px;margin-left:auto">$4,280.12</span>
+        <div class="chip"><span class="tok">E</span>ETH ▾</div>
+      </div>
+    </div>
+    <div class="input">
+      <label>to</label>
+      <div class="field">
+        <span class="num" style="color:#8A8A94">≈ 4,272.88</span>
+        <div class="chip" style="margin-left:auto"><span class="tok" style="background:#2775CA">$</span>USDC ▾</div>
+      </div>
+    </div>
+  </div>
+</body></html>
