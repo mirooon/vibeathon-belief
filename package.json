@@ -12,6 +12,9 @@
     "node": ">=22.11.0"
   },
   "scripts": {
+    "start": "./scripts/start.sh",
+    "start:detach": "./scripts/start.sh --detach",
+    "stop": "./scripts/start.sh --down",
     "bootstrap": "./scripts/bootstrap.sh",
     "build:shared": "npm run build --workspace=shared",
     "build:backend": "npm run build --workspace=backend",
