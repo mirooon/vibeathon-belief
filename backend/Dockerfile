@@ -14,11 +14,12 @@ COPY package.json package-lock.json* ./
 COPY shared/package.json ./shared/
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
+COPY worker/package.json ./worker/
 # --ignore-scripts to avoid running postinstall hooks in workspaces we don't need here.
 RUN npm ci --ignore-scripts
 # sharp (transitive dep of @xenova/transformers) needs its install script to
 # download the platform-specific prebuilt binary.
-RUN npm rebuild sharp
+RUN npm rebuild sharp || true
 
 # ---- build: compile shared + backend TypeScript to dist/ ----
 FROM ${NODE_IMAGE} AS build

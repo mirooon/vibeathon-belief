@@ -6,7 +6,8 @@
 # Usage:
 #   ./scripts/start.sh              # start everything, stay attached to logs at the end
 #   ./scripts/start.sh --detach     # start everything and return (no log tail)
-#   ./scripts/start.sh --no-seed    # skip the seed step
+#   ./scripts/start.sh --seed        # seed MongoDB with mock fixtures (destructive)
+#   ./scripts/start.sh --no-seed    # (default) skip the seed step
 #   ./scripts/start.sh --rebuild    # force rebuild of images before up
 #   ./scripts/start.sh --with-mongo-express   # also start the mongo-express UI (port 8081)
 #   ./scripts/start.sh --down       # tear everything down and exit
@@ -18,7 +19,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
 
 DETACH=0
-SEED=1
+SEED=0
 REBUILD=0
 WITH_MONGO_EXPRESS=0
 DOWN=0
@@ -26,6 +27,7 @@ DOWN=0
 for arg in "$@"; do
   case "${arg}" in
     --detach|-d) DETACH=1 ;;
+    --seed) SEED=1 ;;
     --no-seed) SEED=0 ;;
     --rebuild) REBUILD=1 ;;
     --with-mongo-express) WITH_MONGO_EXPRESS=1 ;;
@@ -76,7 +78,7 @@ else
   compose build
 fi
 
-SERVICES=(mongodb backend frontend)
+SERVICES=(mongodb backend frontend worker)
 if [[ ${WITH_MONGO_EXPRESS} -eq 1 ]]; then
   SERVICES+=(mongo-express)
 fi
@@ -129,6 +131,7 @@ status_of() {
 MONGO_STATUS=$(status_of mongodb)
 BACKEND_STATUS=$(status_of backend)
 FRONTEND_STATUS=$(status_of frontend)
+WORKER_STATUS=$(status_of worker)
 
 API_PROBE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:3000/api/v1/health || echo "---")
 FE_PROBE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:5173/ || echo "---")
@@ -141,6 +144,7 @@ printf '  \033[1mServices\033[0m\n'
 printf '    mongodb   %s\n' "${MONGO_STATUS}"
 printf '    backend   %s  (GET /api/v1/health → %s)\n' "${BACKEND_STATUS}" "${API_PROBE}"
 printf '    frontend  %s  (GET / → %s)\n' "${FRONTEND_STATUS}" "${FE_PROBE}"
+printf '    worker    %s\n' "${WORKER_STATUS}"
 if [[ ${WITH_MONGO_EXPRESS} -eq 1 ]]; then
   printf '    mongo-ui  %s\n' "$(status_of mongo-express)"
 fi

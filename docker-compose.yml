@@ -21,6 +21,8 @@ services:
       dockerfile: backend/Dockerfile
       target: development
     restart: unless-stopped
+    volumes:
+      - ./backend/src:/app/backend/src
     environment:
       MONGO_URL: mongodb://mongodb:27017/vibeahack
       NODE_ENV: development
@@ -31,7 +33,7 @@ services:
       mongodb:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/v1/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/api/v1/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -51,6 +53,26 @@ services:
       - "5173:5173"
     depends_on:
       backend:
+        condition: service_healthy
+    networks:
+      - vibeahack
+
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+      target: development
+    restart: unless-stopped
+    volumes:
+      - ./worker/src:/app/worker/src
+    environment:
+      MONGO_URL: mongodb://mongodb:27017/vibeahack
+      NODE_ENV: development
+      MARKET_SYNC_CRON: "*/15 * * * *"
+      ORDERBOOK_SYNC_CRON: "*/2 * * * *"
+      PRICE_SYNC_CRON: "0 * * * *"
+    depends_on:
+      mongodb:
         condition: service_healthy
     networks:
       - vibeahack
