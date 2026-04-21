@@ -40,6 +40,10 @@ export type VenueMarketRef = z.infer<typeof VenueMarketRefSchema>;
 /**
  * The canonical event the aggregator reasons about.
  * Produced in Phase 1 by the StaticSeededMatcher; in Phase 2, by an LLM title matcher.
+ *
+ * eventId / eventTitle / groupItemTitle support Polymarket-style negRisk grouping:
+ * multiple binary logical markets (one per candidate) share the same eventId and
+ * are displayed as a single grouped card in the UI.
  */
 export const LogicalMarketSchema = z.object({
   id: z.string().min(1),
@@ -50,6 +54,9 @@ export const LogicalMarketSchema = z.object({
   quoteCurrency: QuoteCurrencySchema,
   outcomes: z.array(OutcomeSchema).min(2),
   venueMarkets: z.array(VenueMarketRefSchema).min(1),
+  eventId: z.string().optional(),
+  eventTitle: z.string().optional(),
+  groupItemTitle: z.string().optional(),
 });
 export type LogicalMarket = z.infer<typeof LogicalMarketSchema>;
 

@@ -15,50 +15,98 @@ import type {
  */
 export const SEEDED_LOGICAL_MARKETS: LogicalMarket[] = [
   {
-    id: "fifa-2026-winner",
-    title: "2026 FIFA World Cup Winner",
+    id: "fifa-2026-arg",
+    title: "Will Argentina win the 2026 FIFA World Cup?",
     category: "sports",
     endDate: "2026-07-19T23:59:59.999Z",
     status: "open",
     quoteCurrency: "USD",
+    eventId: "fifa-2026",
+    eventTitle: "2026 FIFA World Cup Winner",
+    groupItemTitle: "Argentina",
     outcomes: [
-      { id: "argentina", label: "Argentina" },
-      { id: "france", label: "France" },
-      { id: "brazil", label: "Brazil" },
+      { id: "yes", label: "Yes" },
+      { id: "no", label: "No" },
     ],
     venueMarkets: [
       {
         venue: "polymarket",
-        sourceMarketId: "poly-fifa-2026-winner",
-        outcomeMap: {
-          poly_arg: "argentina",
-          poly_fra: "france",
-          poly_bra: "brazil",
-        },
+        sourceMarketId: "poly-fifa-arg",
+        outcomeMap: { poly_yes: "yes", poly_no: "no" },
       },
       {
         venue: "kalshi",
         sourceMarketId: "kalshi-fifa-arg",
-        outcomeMap: { kalshi_yes: "argentina" },
+        outcomeMap: { kalshi_yes: "yes", kalshi_no: "no" },
+      },
+      {
+        venue: "myriad",
+        sourceMarketId: "myriad-fifa-arg",
+        outcomeMap: { myriad_yes: "yes", myriad_no: "no" },
+      },
+    ],
+  },
+  {
+    id: "fifa-2026-fra",
+    title: "Will France win the 2026 FIFA World Cup?",
+    category: "sports",
+    endDate: "2026-07-19T23:59:59.999Z",
+    status: "open",
+    quoteCurrency: "USD",
+    eventId: "fifa-2026",
+    eventTitle: "2026 FIFA World Cup Winner",
+    groupItemTitle: "France",
+    outcomes: [
+      { id: "yes", label: "Yes" },
+      { id: "no", label: "No" },
+    ],
+    venueMarkets: [
+      {
+        venue: "polymarket",
+        sourceMarketId: "poly-fifa-fra",
+        outcomeMap: { poly_yes: "yes", poly_no: "no" },
       },
       {
         venue: "kalshi",
         sourceMarketId: "kalshi-fifa-fra",
-        outcomeMap: { kalshi_yes: "france" },
+        outcomeMap: { kalshi_yes: "yes", kalshi_no: "no" },
+      },
+      {
+        venue: "myriad",
+        sourceMarketId: "myriad-fifa-fra",
+        outcomeMap: { myriad_yes: "yes", myriad_no: "no" },
+      },
+    ],
+  },
+  {
+    id: "fifa-2026-bra",
+    title: "Will Brazil win the 2026 FIFA World Cup?",
+    category: "sports",
+    endDate: "2026-07-19T23:59:59.999Z",
+    status: "open",
+    quoteCurrency: "USD",
+    eventId: "fifa-2026",
+    eventTitle: "2026 FIFA World Cup Winner",
+    groupItemTitle: "Brazil",
+    outcomes: [
+      { id: "yes", label: "Yes" },
+      { id: "no", label: "No" },
+    ],
+    venueMarkets: [
+      {
+        venue: "polymarket",
+        sourceMarketId: "poly-fifa-bra",
+        outcomeMap: { poly_yes: "yes", poly_no: "no" },
       },
       {
         venue: "kalshi",
         sourceMarketId: "kalshi-fifa-bra",
-        outcomeMap: { kalshi_yes: "brazil" },
+        outcomeMap: { kalshi_yes: "yes", kalshi_no: "no" },
       },
       {
         venue: "myriad",
-        sourceMarketId: "myriad-fifa",
-        outcomeMap: {
-          myriad_arg: "argentina",
-          myriad_fra: "france",
-          myriad_bra: "brazil",
-        },
+        sourceMarketId: "myriad-fifa-bra",
+        outcomeMap: { myriad_yes: "yes", myriad_no: "no" },
       },
     ],
   },

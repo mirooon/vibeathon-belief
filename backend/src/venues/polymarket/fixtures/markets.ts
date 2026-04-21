@@ -3,16 +3,41 @@ import type { VenueMarket } from "@vibeahack/shared";
 export const POLYMARKET_MARKETS: VenueMarket[] = [
   {
     venue: "polymarket",
-    sourceMarketId: "poly-fifa-2026-winner",
-    title: "Who will win the 2026 FIFA World Cup?",
+    sourceMarketId: "poly-fifa-arg",
+    title: "Will Argentina win the 2026 FIFA World Cup?",
     category: "sports",
     endDate: "2026-07-19T23:59:59.999Z",
     status: "open",
     quoteCurrency: "USD",
     outcomes: [
-      { sourceOutcomeId: "poly_arg", label: "Argentina" },
-      { sourceOutcomeId: "poly_fra", label: "France" },
-      { sourceOutcomeId: "poly_bra", label: "Brazil" },
+      { sourceOutcomeId: "poly_yes", label: "Yes" },
+      { sourceOutcomeId: "poly_no", label: "No" },
+    ],
+  },
+  {
+    venue: "polymarket",
+    sourceMarketId: "poly-fifa-fra",
+    title: "Will France win the 2026 FIFA World Cup?",
+    category: "sports",
+    endDate: "2026-07-19T23:59:59.999Z",
+    status: "open",
+    quoteCurrency: "USD",
+    outcomes: [
+      { sourceOutcomeId: "poly_yes", label: "Yes" },
+      { sourceOutcomeId: "poly_no", label: "No" },
+    ],
+  },
+  {
+    venue: "polymarket",
+    sourceMarketId: "poly-fifa-bra",
+    title: "Will Brazil win the 2026 FIFA World Cup?",
+    category: "sports",
+    endDate: "2026-07-19T23:59:59.999Z",
+    status: "open",
+    quoteCurrency: "USD",
+    outcomes: [
+      { sourceOutcomeId: "poly_yes", label: "Yes" },
+      { sourceOutcomeId: "poly_no", label: "No" },
     ],
   },
   {

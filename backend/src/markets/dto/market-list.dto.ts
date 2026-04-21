@@ -61,6 +61,15 @@ export class MarketListItemDto implements MarketListItem {
       "Trailing 24-hour notional traded, USD. Phase-1 deterministic stub derived from market id + TVL until trade-stream ingestion lands.",
   })
   volume24h!: number;
+
+  @ApiProperty({ example: "fifa-2026", required: false, nullable: true })
+  eventId?: string | undefined;
+
+  @ApiProperty({ example: "2026 FIFA World Cup Winner", required: false, nullable: true })
+  eventTitle?: string | undefined;
+
+  @ApiProperty({ example: "Argentina", required: false, nullable: true })
+  groupItemTitle?: string | undefined;
 }
 
 export class MarketListResponseDto implements MarketListResponse {

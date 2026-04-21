@@ -117,6 +117,9 @@ export async function seed(options: SeedOptions): Promise<SeedReport> {
         sourceMarketId: ref.sourceMarketId,
         outcomeMap: ref.outcomeMap,
       })),
+      ...(logical.eventId ? { eventId: logical.eventId } : {}),
+      ...(logical.eventTitle ? { eventTitle: logical.eventTitle } : {}),
+      ...(logical.groupItemTitle ? { groupItemTitle: logical.groupItemTitle } : {}),
     });
 
     for (const ref of logical.venueMarkets) {

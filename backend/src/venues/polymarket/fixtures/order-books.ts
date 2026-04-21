@@ -5,19 +5,17 @@ const NOW = "2026-04-21T12:00:00.000Z";
 /**
  * Polymarket order books.
  *
- * Note on the `poly_fra` outcome of `poly-fifa-2026-winner`: this is the canonical
- * §6a test case. Polymarket's ask side is intentionally a single level of 500 @ 0.51
- * so that single:polymarket at BUY 600 reports filledSize=500, unfilledSize=100.
- * Other outcomes and other markets have ≥3-level depth (§5b).
+ * The FIFA World Cup markets are now 3 separate binary markets (negRisk pattern).
+ * §6a canonical case lives on poly-fifa-fra / poly_yes: single ask level of 500 @ 0.51.
  */
 export const POLYMARKET_ORDER_BOOKS: VenueOrderBookSnapshot[] = [
   {
     venue: "polymarket",
-    sourceMarketId: "poly-fifa-2026-winner",
+    sourceMarketId: "poly-fifa-arg",
     timestamp: NOW,
     outcomes: [
       {
-        sourceOutcomeId: "poly_arg",
+        sourceOutcomeId: "poly_yes",
         bids: [
           { price: 0.34, size: 250 },
           { price: 0.32, size: 200 },
@@ -30,8 +28,28 @@ export const POLYMARKET_ORDER_BOOKS: VenueOrderBookSnapshot[] = [
         ],
       },
       {
+        sourceOutcomeId: "poly_no",
+        bids: [
+          { price: 0.60, size: 250 },
+          { price: 0.58, size: 200 },
+          { price: 0.56, size: 150 },
+        ],
+        asks: [
+          { price: 0.64, size: 300 },
+          { price: 0.66, size: 200 },
+          { price: 0.68, size: 150 },
+        ],
+      },
+    ],
+  },
+  {
+    venue: "polymarket",
+    sourceMarketId: "poly-fifa-fra",
+    timestamp: NOW,
+    outcomes: [
+      {
         // Canonical §6a case.
-        sourceOutcomeId: "poly_fra",
+        sourceOutcomeId: "poly_yes",
         bids: [
           { price: 0.49, size: 400 },
           { price: 0.47, size: 200 },
@@ -40,7 +58,27 @@ export const POLYMARKET_ORDER_BOOKS: VenueOrderBookSnapshot[] = [
         asks: [{ price: 0.51, size: 500 }],
       },
       {
-        sourceOutcomeId: "poly_bra",
+        sourceOutcomeId: "poly_no",
+        bids: [
+          { price: 0.47, size: 400 },
+          { price: 0.45, size: 200 },
+          { price: 0.43, size: 100 },
+        ],
+        asks: [
+          { price: 0.49, size: 400 },
+          { price: 0.51, size: 200 },
+          { price: 0.53, size: 100 },
+        ],
+      },
+    ],
+  },
+  {
+    venue: "polymarket",
+    sourceMarketId: "poly-fifa-bra",
+    timestamp: NOW,
+    outcomes: [
+      {
+        sourceOutcomeId: "poly_yes",
         bids: [
           { price: 0.24, size: 250 },
           { price: 0.22, size: 200 },
@@ -50,6 +88,19 @@ export const POLYMARKET_ORDER_BOOKS: VenueOrderBookSnapshot[] = [
           { price: 0.26, size: 250 },
           { price: 0.28, size: 200 },
           { price: 0.30, size: 150 },
+        ],
+      },
+      {
+        sourceOutcomeId: "poly_no",
+        bids: [
+          { price: 0.70, size: 250 },
+          { price: 0.68, size: 200 },
+          { price: 0.66, size: 150 },
+        ],
+        asks: [
+          { price: 0.74, size: 250 },
+          { price: 0.76, size: 200 },
+          { price: 0.78, size: 150 },
         ],
       },
     ],

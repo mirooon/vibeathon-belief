@@ -5,11 +5,11 @@ const NOW = "2026-04-21T12:00:00.000Z";
 export const MYRIAD_ORDER_BOOKS: VenueOrderBookSnapshot[] = [
   {
     venue: "myriad",
-    sourceMarketId: "myriad-fifa",
+    sourceMarketId: "myriad-fifa-arg",
     timestamp: NOW,
     outcomes: [
       {
-        sourceOutcomeId: "myriad_arg",
+        sourceOutcomeId: "myriad_yes",
         bids: [
           { price: 0.32, size: 150 },
           { price: 0.30, size: 100 },
@@ -22,8 +22,28 @@ export const MYRIAD_ORDER_BOOKS: VenueOrderBookSnapshot[] = [
         ],
       },
       {
+        sourceOutcomeId: "myriad_no",
+        bids: [
+          { price: 0.58, size: 150 },
+          { price: 0.56, size: 100 },
+          { price: 0.54, size: 75 },
+        ],
+        asks: [
+          { price: 0.62, size: 150 },
+          { price: 0.64, size: 100 },
+          { price: 0.66, size: 75 },
+        ],
+      },
+    ],
+  },
+  {
+    venue: "myriad",
+    sourceMarketId: "myriad-fifa-fra",
+    timestamp: NOW,
+    outcomes: [
+      {
         // Canonical §6a case — single ask level of 300 @ 0.56.
-        sourceOutcomeId: "myriad_fra",
+        sourceOutcomeId: "myriad_yes",
         bids: [
           { price: 0.54, size: 250 },
           { price: 0.52, size: 150 },
@@ -32,7 +52,27 @@ export const MYRIAD_ORDER_BOOKS: VenueOrderBookSnapshot[] = [
         asks: [{ price: 0.56, size: 300 }],
       },
       {
-        sourceOutcomeId: "myriad_bra",
+        sourceOutcomeId: "myriad_no",
+        bids: [
+          { price: 0.42, size: 250 },
+          { price: 0.40, size: 150 },
+          { price: 0.38, size: 80 },
+        ],
+        asks: [
+          { price: 0.44, size: 300 },
+          { price: 0.46, size: 200 },
+          { price: 0.48, size: 100 },
+        ],
+      },
+    ],
+  },
+  {
+    venue: "myriad",
+    sourceMarketId: "myriad-fifa-bra",
+    timestamp: NOW,
+    outcomes: [
+      {
+        sourceOutcomeId: "myriad_yes",
         bids: [
           { price: 0.22, size: 150 },
           { price: 0.20, size: 100 },
@@ -42,6 +82,19 @@ export const MYRIAD_ORDER_BOOKS: VenueOrderBookSnapshot[] = [
           { price: 0.28, size: 150 },
           { price: 0.30, size: 100 },
           { price: 0.32, size: 75 },
+        ],
+      },
+      {
+        sourceOutcomeId: "myriad_no",
+        bids: [
+          { price: 0.68, size: 150 },
+          { price: 0.66, size: 100 },
+          { price: 0.64, size: 75 },
+        ],
+        asks: [
+          { price: 0.72, size: 150 },
+          { price: 0.74, size: 100 },
+          { price: 0.76, size: 75 },
         ],
       },
     ],

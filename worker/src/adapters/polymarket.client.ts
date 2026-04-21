@@ -32,6 +32,7 @@ export interface PolyApiMarket {
     image: string;
     icon: string;
   }>;
+  groupItemTitle?: string;
 }
 
 export interface ClobBookLevel {

@@ -1,4 +1,5 @@
 import type {
+  MarketListItem,
   MarketSortField,
   MarketSortOrder,
   MarketStatus,
@@ -173,10 +174,37 @@ export function Markets() {
     const q = search.trim().toLowerCase();
     return data.items.filter((m) => {
       if (category && m.category !== category) return false;
-      if (q && !m.title.toLowerCase().includes(q)) return false;
+      if (q && !m.title.toLowerCase().includes(q) && !(m.eventTitle ?? "").toLowerCase().includes(q) && !(m.groupItemTitle ?? "").toLowerCase().includes(q)) return false;
       return true;
     });
   }, [data, category, search]);
+
+  type RenderItem =
+    | { type: "single"; market: MarketListItem }
+    | { type: "group"; eventId: string; eventTitle: string; markets: MarketListItem[] };
+
+  const renderItems = useMemo((): RenderItem[] => {
+    const eventCounts = new Map<string, number>();
+    for (const m of visibleItems) {
+      if (m.eventId) eventCounts.set(m.eventId, (eventCounts.get(m.eventId) ?? 0) + 1);
+    }
+    const groups = new Map<string, MarketListItem[]>();
+    const result: RenderItem[] = [];
+    const seenEventIds = new Set<string>();
+    for (const m of visibleItems) {
+      if (m.eventId && (eventCounts.get(m.eventId) ?? 0) > 1) {
+        if (!groups.has(m.eventId)) {
+          groups.set(m.eventId, []);
+          result.push({ type: "group", eventId: m.eventId, eventTitle: m.eventTitle ?? m.title, markets: groups.get(m.eventId)! });
+          seenEventIds.add(m.eventId);
+        }
+        groups.get(m.eventId)!.push(m);
+      } else {
+        result.push({ type: "single", market: m });
+      }
+    }
+    return result;
+  }, [visibleItems]);
 
   return (
     <div className="pm-panel">
@@ -298,80 +326,138 @@ export function Markets() {
 
       {data && visibleItems.length > 0 && (
         <div className="pm-grid">
-          {visibleItems.map((m) => {
-            const sortedOutcomes = [...m.outcomes].sort((a, b) => {
-              const av = a.bestAsk ?? -1;
-              const bv = b.bestAsk ?? -1;
-              return bv - av;
-            });
-            const hasOverflow = sortedOutcomes.length > 4;
+          {renderItems.map((item) =>
+            item.type === "single" ? (
+              <SingleMarketCard key={item.market.id} market={item.market} />
+            ) : (
+              <GroupedEventCard key={item.eventId} eventTitle={item.eventTitle} markets={item.markets} />
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SingleMarketCard({ market: m }: { market: MarketListItem }) {
+  const sortedOutcomes = [...m.outcomes].sort((a, b) => (b.bestAsk ?? -1) - (a.bestAsk ?? -1));
+  const hasOverflow = sortedOutcomes.length > 4;
+  return (
+    <Link
+      to={`/markets/${encodeURIComponent(m.id)}`}
+      style={{ color: "inherit", textDecoration: "none", display: "block" }}
+    >
+      <div className="pm-card">
+        <div className="pm-card-top">
+          <div className="pm-icon">{iconInitial(m.title)}</div>
+          <h3 className="pm-title">{m.title}</h3>
+        </div>
+
+        <div className={`pm-outcomes ${hasOverflow ? "pm-scroll" : ""}`}>
+          {sortedOutcomes.map((o) => {
+            const noPrice = o.bestAsk === null ? null : 1 - o.bestAsk;
+            const disabled = o.bestAsk === null;
             return (
-              <Link
-                to={`/markets/${encodeURIComponent(m.id)}`}
-                key={m.id}
-                style={{ color: "inherit", textDecoration: "none", display: "block" }}
-              >
-                <div className="pm-card">
-                  <div className="pm-card-top">
-                    <div className="pm-icon">{iconInitial(m.title)}</div>
-                    <h3 className="pm-title">{m.title}</h3>
-                  </div>
-
-                  <div className={`pm-outcomes ${hasOverflow ? "pm-scroll" : ""}`}>
-                    {sortedOutcomes.map((o) => {
-                      const noPrice = o.bestAsk === null ? null : 1 - o.bestAsk;
-                      const disabled = o.bestAsk === null;
-                      return (
-                        <div className="pm-outcome-row" key={o.outcomeId}>
-                          <div className="pm-outcome-head">
-                            <span className="pm-outcome-name">{o.outcomeLabel}</span>
-                            <span className={`pm-outcome-pct ${disabled ? "muted" : ""}`}>
-                              {formatPct(o.bestAsk)}
-                            </span>
-                          </div>
-                          <div className="pm-buy-row">
-                            <button
-                              type="button"
-                              className="pm-buy-btn pm-buy-yes"
-                              disabled={disabled}
-                              onClick={(e) => e.preventDefault()}
-                            >
-                              <span>Yes</span>
-                              <span className="cents">{formatCents(o.bestAsk)}</span>
-                            </button>
-                            <button
-                              type="button"
-                              className="pm-buy-btn pm-buy-no"
-                              disabled={disabled}
-                              onClick={(e) => e.preventDefault()}
-                            >
-                              <span>No</span>
-                              <span className="cents">{formatCents(noPrice)}</span>
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="pm-card-footer">
-                    <span>
-                      <strong>{formatUsd(m.volume24h)}</strong> Vol
-                    </span>
-                    <span className="meta-dot" />
-                    <span>{new Date(m.endDate).toLocaleDateString()}</span>
-                    <span className="venues">
-                      {m.venues.map((v) => (
-                        <span key={v} className="badge">{VENUE_LABELS[v]}</span>
-                      ))}
-                    </span>
-                  </div>
+              <div className="pm-outcome-row" key={o.outcomeId}>
+                <div className="pm-outcome-head">
+                  <span className="pm-outcome-name">{o.outcomeLabel}</span>
+                  <span className={`pm-outcome-pct ${disabled ? "muted" : ""}`}>
+                    {formatPct(o.bestAsk)}
+                  </span>
                 </div>
-              </Link>
+                <div className="pm-buy-row">
+                  <button type="button" className="pm-buy-btn pm-buy-yes" disabled={disabled}>
+                    <span>Yes</span>
+                    <span className="cents">{formatCents(o.bestAsk)}</span>
+                  </button>
+                  <button type="button" className="pm-buy-btn pm-buy-no" disabled={disabled}>
+                    <span>No</span>
+                    <span className="cents">{formatCents(noPrice)}</span>
+                  </button>
+                </div>
+              </div>
             );
           })}
         </div>
-      )}
+
+        <div className="pm-card-footer">
+          <span><strong>{formatUsd(m.volume24h)}</strong> Vol</span>
+          <span className="meta-dot" />
+          <span>{new Date(m.endDate).toLocaleDateString()}</span>
+          <span className="venues">
+            {m.venues.map((v) => (
+              <span key={v} className="badge">{VENUE_LABELS[v]}</span>
+            ))}
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function GroupedEventCard({ eventTitle, markets }: { eventTitle: string; markets: MarketListItem[] }) {
+  const sortedMarkets = [...markets].sort((a, b) => {
+    const aYes = a.outcomes.find((o) => o.outcomeId === "yes")?.bestAsk ?? a.outcomes[0]?.bestAsk ?? -1;
+    const bYes = b.outcomes.find((o) => o.outcomeId === "yes")?.bestAsk ?? b.outcomes[0]?.bestAsk ?? -1;
+    return bYes - aYes;
+  });
+  const totalVolume = markets.reduce((s, m) => s + m.volume24h, 0);
+  const allVenues = Array.from(new Set(markets.flatMap((m) => m.venues)));
+  const endDate = markets[0]?.endDate;
+
+  return (
+    <div className="pm-card pm-card-group">
+      <div className="pm-card-top">
+        <div className="pm-icon">{iconInitial(eventTitle)}</div>
+        <h3 className="pm-title">{eventTitle}</h3>
+      </div>
+
+      <div className="pm-outcomes pm-scroll">
+        {sortedMarkets.map((m) => {
+          const yesOutcome = m.outcomes.find((o) => o.outcomeId === "yes") ?? m.outcomes[0];
+          const noOutcome = m.outcomes.find((o) => o.outcomeId === "no") ?? m.outcomes[1];
+          const yesPrice = yesOutcome?.bestAsk ?? null;
+          const noPrice = noOutcome?.bestAsk ?? (yesPrice !== null ? 1 - yesPrice : null);
+          const label = m.groupItemTitle ?? m.title;
+          const disabled = yesPrice === null;
+          return (
+            <Link
+              key={m.id}
+              to={`/markets/${encodeURIComponent(m.id)}`}
+              style={{ color: "inherit", textDecoration: "none", display: "block" }}
+              className="pm-outcome-row pm-outcome-row--linked"
+            >
+              <div className="pm-outcome-head">
+                <span className="pm-outcome-name">{label}</span>
+                <span className={`pm-outcome-pct ${disabled ? "muted" : ""}`}>
+                  {formatPct(yesPrice)}
+                </span>
+              </div>
+              <div className="pm-buy-row">
+                <button type="button" className="pm-buy-btn pm-buy-yes" disabled={disabled}>
+                  <span>Yes</span>
+                  <span className="cents">{formatCents(yesPrice)}</span>
+                </button>
+                <button type="button" className="pm-buy-btn pm-buy-no" disabled={disabled}>
+                  <span>No</span>
+                  <span className="cents">{formatCents(noPrice)}</span>
+                </button>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className="pm-card-footer">
+        <span><strong>{formatUsd(totalVolume)}</strong> Vol</span>
+        <span className="meta-dot" />
+        {endDate && <span>{new Date(endDate).toLocaleDateString()}</span>}
+        <span className="venues">
+          {allVenues.map((v) => (
+            <span key={v} className="badge">{VENUE_LABELS[v]}</span>
+          ))}
+        </span>
+      </div>
     </div>
   );
 }

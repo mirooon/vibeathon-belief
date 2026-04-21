@@ -46,6 +46,9 @@ export async function runMarketSync(): Promise<void> {
     const logicalMarketId = `polymarket-${m.id}`;
     const status = toStatus(m);
     const category = deriveCategory(m);
+    const eventId = m.events?.[0]?.id ? `polymarket-event-${m.events[0].id}` : undefined;
+    const eventTitle = m.events?.[0]?.title ?? undefined;
+    const groupItemTitle = m.groupItemTitle ?? undefined;
 
     const outcomeMap: Record<string, string> = {};
     const canonicalOutcomes = m.outcomes.map((label, i) => {
@@ -75,6 +78,9 @@ export async function runMarketSync(): Promise<void> {
           quoteCurrency: 'USD',
           outcomes: canonicalOutcomes,
           venueMarkets: [{ venue: 'polymarket', sourceMarketId: m.id, outcomeMap }],
+          ...(eventId ? { eventId } : {}),
+          ...(eventTitle ? { eventTitle } : {}),
+          ...(groupItemTitle ? { groupItemTitle } : {}),
         },
       },
       { upsert: true },

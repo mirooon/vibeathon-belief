@@ -6,8 +6,12 @@
  * In Phase 2, replace with model-generated embeddings stored in MongoDB.
  */
 export const MARKET_CONCEPT_TEXTS: Record<string, string> = {
-  "fifa-2026-winner":
-    "FIFA World Cup 2026 winner soccer football Argentina France Brazil tournament champion",
+  "fifa-2026-arg":
+    "FIFA World Cup 2026 Argentina soccer football national team tournament champion",
+  "fifa-2026-fra":
+    "FIFA World Cup 2026 France soccer football national team tournament champion",
+  "fifa-2026-bra":
+    "FIFA World Cup 2026 Brazil soccer football Selecao national team tournament champion",
   "midterm-2026-dems-house":
     "US midterm elections 2026 Democrats Republicans House Congress vote ballot",
   "btc-100k-2026":
@@ -32,13 +36,17 @@ export const MARKET_CONCEPT_TEXTS: Record<string, string> = {
  * polarity keywords matter.
  */
 export const OUTCOME_CONCEPT_TEXTS: Record<string, Record<string, string>> = {
-  "fifa-2026-winner": {
-    argentina:
-      "Argentina wins FIFA World Cup 2026, Messi Argentina national team soccer champion",
-    france:
-      "France wins FIFA World Cup 2026, Mbappe French national team les bleus champion",
-    brazil:
-      "Brazil wins FIFA World Cup 2026, Selecao Brazilian national team yellow jersey champion",
+  "fifa-2026-arg": {
+    yes: "Argentina wins FIFA World Cup 2026, Messi Argentina national team soccer champion",
+    no: "Argentina does not win FIFA World Cup 2026, knocked out eliminated",
+  },
+  "fifa-2026-fra": {
+    yes: "France wins FIFA World Cup 2026, Mbappe French national team les bleus champion",
+    no: "France does not win FIFA World Cup 2026, knocked out eliminated",
+  },
+  "fifa-2026-bra": {
+    yes: "Brazil wins FIFA World Cup 2026, Selecao Brazilian national team yellow jersey champion",
+    no: "Brazil does not win FIFA World Cup 2026, knocked out eliminated",
   },
   "midterm-2026-dems-house": {
     yes: "Democrats retain House majority 2026 midterms keep control Congress blue wave",

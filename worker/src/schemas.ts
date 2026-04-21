@@ -58,6 +58,9 @@ const logicalMarketSchema = new Schema(
     quoteCurrency: { type: String, required: true, default: 'USD' },
     outcomes: { type: [OutcomeRefSchema], required: true },
     venueMarkets: { type: [VenueMarketRefSchema], required: true },
+    eventId: { type: String },
+    eventTitle: { type: String },
+    groupItemTitle: { type: String },
   },
   { timestamps: true, collection: LOGICAL_MARKET_COLLECTION, versionKey: false },
 );

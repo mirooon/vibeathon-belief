@@ -35,6 +35,11 @@ export const MarketListItemSchema = z.object({
   // from market id + TVL (no trade stream is captured yet); replace once trade
   // history is ingested.
   volume24h: z.number().min(0),
+  // negRisk / grouped-event fields (optional). Markets sharing the same eventId are
+  // displayed as a single grouped card in the UI (Polymarket-style).
+  eventId: z.string().optional(),
+  eventTitle: z.string().optional(),
+  groupItemTitle: z.string().optional(),
 });
 export type MarketListItem = z.infer<typeof MarketListItemSchema>;
 

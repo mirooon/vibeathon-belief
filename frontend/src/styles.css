@@ -663,12 +663,32 @@ a:hover { color: var(--fg-1); }
 }
 
 .pm-scroll {
-  max-height: 180px;
+  max-height: 240px;
   overflow-y: auto;
   padding-right: 4px;
 }
 .pm-scroll::-webkit-scrollbar { width: 4px; }
 .pm-scroll::-webkit-scrollbar-thumb { background: var(--ink-300); border-radius: 2px; }
+
+.pm-outcome-row--linked {
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  margin: 0 -4px;
+  padding-left: 4px;
+  padding-right: 4px;
+  transition: background var(--dur-fast) var(--ease-standard);
+}
+.pm-outcome-row--linked:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.pm-card-group {
+  cursor: default;
+}
+.pm-card-group:hover {
+  border-color: var(--ink-400);
+  box-shadow: 0 0 20px rgba(92,103,255,0.12);
+}
 
 /* ===== BADGE / CHIP ===== */
 .badge {

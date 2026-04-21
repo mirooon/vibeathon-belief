@@ -57,6 +57,9 @@ interface LogicalMarketDoc {
     sourceMarketId: string;
     outcomeMap: Record<string, string> | Map<string, string>;
   }>;
+  eventId?: string;
+  eventTitle?: string;
+  groupItemTitle?: string;
 }
 
 interface SnapshotOutcomeDoc {
@@ -159,6 +162,9 @@ export class MarketsService {
         outcomes,
         tvl,
         volume24h,
+        ...(market.eventId ? { eventId: market.eventId } : {}),
+        ...(market.eventTitle ? { eventTitle: market.eventTitle } : {}),
+        ...(market.groupItemTitle ? { groupItemTitle: market.groupItemTitle } : {}),
       });
     }
 
