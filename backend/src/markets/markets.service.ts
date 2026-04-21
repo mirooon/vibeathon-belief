@@ -1,6 +1,5 @@
 import {
   HttpStatus,
-  Inject,
   Injectable,
   Logger,
 } from "@nestjs/common";
@@ -29,10 +28,6 @@ import { buildQuote } from "../aggregation/quote-engine.js";
 import { buildUnifiedPriceSeries } from "../aggregation/price-series.js";
 import { ApiException } from "../common/api-exception.js";
 import { VENUE_FEES } from "../config/venue-fees.js";
-import {
-  MARKET_MATCHER,
-  type MarketMatcher,
-} from "../matching/market-matcher.interface.js";
 import {
   LOGICAL_MARKET_MODEL,
   ORDERBOOK_SNAPSHOT_MODEL,
@@ -99,7 +94,6 @@ export class MarketsService {
     private readonly snapshotModel: Model<SnapshotDoc>,
     @InjectModel(PRICE_HISTORY_MODEL)
     private readonly priceHistoryModel: Model<PriceHistoryDoc>,
-    @Inject(MARKET_MATCHER) private readonly matcher: MarketMatcher,
   ) {
     // Reference `venueMarketModel` so Nest retains the DI — reads use it in Phase 2.
     void this.venueMarketModel;
@@ -311,10 +305,20 @@ export class MarketsService {
       );
     }
 
-    const venueOutcomes = await this.matcher.findVenueOutcomes(
-      id,
-      req.outcomeId,
-    );
+    const venueOutcomes: { venue: Venue; sourceMarketId: string; sourceOutcomeId: string }[] =
+      market.venueMarkets.flatMap((vm) => {
+        const map: Record<string, string> =
+          vm.outcomeMap instanceof Map
+            ? Object.fromEntries(vm.outcomeMap as Map<string, string>)
+            : (vm.outcomeMap as Record<string, string>);
+        return Object.entries(map)
+          .filter(([, canonical]) => canonical === req.outcomeId)
+          .map(([sourceOutcomeId]) => ({
+            venue: vm.venue,
+            sourceMarketId: vm.sourceMarketId,
+            sourceOutcomeId,
+          }));
+      });
 
     // Collect levels per venue, tolerating missing snapshots (§8d).
     const perVenueByVenue = new Map<Venue, OrderBookLevel[]>();
