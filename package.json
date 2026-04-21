@@ -1,0 +1,27 @@
+{
+  "name": "vibeahack",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prediction markets aggregator across Polymarket, Kalshi, Myriad (Phase 1: mocked)",
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=22.11.0"
+  },
+  "scripts": {
+    "bootstrap": "./scripts/bootstrap.sh",
+    "build:shared": "npm run build --workspace=shared",
+    "build:backend": "npm run build --workspace=backend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build": "npm run build:shared && npm run build:backend && npm run build:frontend",
+    "lint:backend": "npm run lint --workspace=backend",
+    "lint:frontend": "npm run lint --workspace=frontend",
+    "typecheck:backend": "npm run typecheck --workspace=backend",
+    "typecheck:frontend": "npm run typecheck --workspace=frontend",
+    "seed": "npm run seed --workspace=backend",
+    "test:e2e": "npm run test:e2e --workspace=backend"
+  }
+}

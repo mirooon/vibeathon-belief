@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/build
+**/coverage
+**/.env
+**/.env.local
+**/*.log
+**/*.tsbuildinfo
+.git
+.gitignore
+.DS_Store
+.idea
+.vscode
+docs
+README.md
+ENHANCED_PROMPT.md

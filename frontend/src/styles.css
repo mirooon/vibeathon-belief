@@ -1,0 +1,150 @@
+:root {
+  --bg: #0b0f17;
+  --panel: #131a24;
+  --panel-soft: #1a2331;
+  --border: #263149;
+  --text: #e5ecff;
+  --text-dim: #8a99bd;
+  --accent: #4f86ff;
+  --accent-dim: #2f5bb5;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --font: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.nav {
+  display: flex;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.nav h1 { margin: 0; font-size: 16px; font-weight: 600; }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.panel h2 { margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); }
+
+.market-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: border-color 120ms ease;
+  cursor: pointer;
+}
+.market-card:hover { border-color: var(--accent-dim); }
+
+.market-card h3 { margin: 0 0 4px; font-size: 16px; }
+.market-card .meta { color: var(--text-dim); font-size: 12px; margin-bottom: 12px; }
+.market-card .venues { display: inline-flex; gap: 6px; margin-right: 12px; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  background: var(--panel-soft);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.badge.accent { background: var(--accent-dim); color: var(--text); border-color: var(--accent); }
+.badge.success { background: rgba(74,222,128,0.15); color: var(--success); border-color: rgba(74,222,128,0.4); }
+.badge.warning { background: rgba(251,191,36,0.15); color: var(--warning); border-color: rgba(251,191,36,0.4); }
+.badge.danger { background: rgba(248,113,113,0.15); color: var(--danger); border-color: rgba(248,113,113,0.4); }
+
+.outcome-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.outcome-row:last-child { border-bottom: none; }
+
+.grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+table.venue-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.venue-table th, table.venue-table td {
+  text-align: left; padding: 8px; border-bottom: 1px solid var(--border);
+}
+table.venue-table th { color: var(--text-dim); font-weight: 500; }
+
+.quote-form { display: grid; gap: 10px; margin-bottom: 16px; }
+.quote-form label { color: var(--text-dim); font-size: 12px; display: block; margin-bottom: 4px; }
+.quote-form select, .quote-form input {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--panel-soft);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.route-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 120ms ease;
+  background: var(--panel-soft);
+}
+.route-card:hover { border-color: var(--accent-dim); }
+.route-card.selected { border-color: var(--accent); background: rgba(79,134,255,0.1); }
+.route-card .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.route-card .row:last-child { margin-bottom: 0; }
+.route-card .label { font-weight: 600; }
+.route-card .summary { color: var(--text-dim); font-size: 12px; }
+.route-card .metrics { display: flex; gap: 12px; font-size: 12px; color: var(--text-dim); }
+.route-card .metrics strong { color: var(--text); }
+
+.execute-btn {
+  width: 100%;
+  padding: 10px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 12px;
+}
+.execute-btn:disabled { background: var(--accent-dim); cursor: not-allowed; opacity: 0.5; }
+
+.error { color: var(--danger); padding: 12px; border: 1px solid var(--danger); border-radius: 6px; background: rgba(248,113,113,0.05); }
+.loading { color: var(--text-dim); padding: 12px; }
