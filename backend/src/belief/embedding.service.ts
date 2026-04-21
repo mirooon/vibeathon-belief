@@ -3,6 +3,12 @@ import type { FeatureExtractionPipeline } from "@xenova/transformers";
 
 const MODEL = "Xenova/all-MiniLM-L6-v2";
 
+// Hide the dynamic import from the TS compiler so `module: "CommonJS"` doesn't
+// down-level it to require() — @xenova/transformers is ESM-only.
+const importEsm = new Function("m", "return import(m)") as <T = unknown>(
+  m: string,
+) => Promise<T>;
+
 @Injectable()
 export class EmbeddingService implements OnModuleInit {
   private readonly logger = new Logger(EmbeddingService.name);
@@ -16,8 +22,10 @@ export class EmbeddingService implements OnModuleInit {
 
   private async loadModel(): Promise<void> {
     this.logger.log(`Loading embedding model ${MODEL}…`);
-    // Dynamic import keeps the ESM package working regardless of output module format.
-    const { pipeline, env } = await import("@xenova/transformers");
+    const { pipeline, env } =
+      await importEsm<typeof import("@xenova/transformers")>(
+        "@xenova/transformers",
+      );
     env.allowLocalModels = false;
     this.pipeline = await pipeline("feature-extraction", MODEL);
     this.logger.log("Embedding model ready.");

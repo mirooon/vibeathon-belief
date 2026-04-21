@@ -12,6 +12,8 @@ import {
   type MarketListItem,
   type MarketListOutcome,
   type MarketListResponse,
+  type MarketSortField,
+  type MarketSortOrder,
   type MarketStatus,
   type OrderBookLevel,
   type OutcomePriceHistory,
@@ -101,14 +103,18 @@ export class MarketsService {
   }
 
   async list(
-    filter: { status?: MarketStatus } = {},
+    filter: {
+      status?: MarketStatus;
+      venues?: Venue[];
+      sortBy?: MarketSortField;
+      sortOrder?: MarketSortOrder;
+    } = {},
   ): Promise<MarketListResponse> {
     const query: Record<string, unknown> = {};
     if (filter.status) query.status = filter.status;
 
     const markets = (await this.logicalMarketModel
       .find(query)
-      .sort({ endDate: 1 })
       .lean<LogicalMarketDoc[]>()
       .exec()) ?? [];
 
@@ -131,6 +137,9 @@ export class MarketsService {
         bestAsk: bestByOutcome.get(o.id)?.bestAsk ?? null,
       }));
 
+      const tvl = computeTvl(snapshots);
+      const volume24h = computeVolume24hStub(market._id, tvl);
+
       items.push({
         id: market._id,
         title: market.title,
@@ -140,10 +149,30 @@ export class MarketsService {
         quoteCurrency: market.quoteCurrency,
         venues,
         outcomes,
+        tvl,
+        volume24h,
       });
     }
 
-    return { items, cursor: null };
+    // Venue filter: keep markets that list at least one of the requested venues.
+    const venueFilter = filter.venues && filter.venues.length > 0
+      ? new Set(filter.venues)
+      : null;
+    const filtered = venueFilter
+      ? items.filter((m) => m.venues.some((v) => venueFilter.has(v)))
+      : items;
+
+    const sortBy: MarketSortField = filter.sortBy ?? "endDate";
+    const sortOrder: MarketSortOrder = filter.sortOrder
+      ?? (sortBy === "endDate" ? "asc" : "desc");
+    const dir = sortOrder === "asc" ? 1 : -1;
+    filtered.sort((a, b) => {
+      const av = sortBy === "endDate" ? Date.parse(a.endDate) : a[sortBy];
+      const bv = sortBy === "endDate" ? Date.parse(b.endDate) : b[sortBy];
+      return (av - bv) * dir;
+    });
+
+    return { items: filtered, cursor: null };
   }
 
   async get(
@@ -337,6 +366,29 @@ function computeBestPrices(
     }
   }
   return byOutcome;
+}
+
+function computeTvl(snapshots: SnapshotDoc[]): number {
+  let total = 0;
+  for (const snap of snapshots) {
+    for (const o of snap.outcomes) {
+      for (const lvl of o.bids) total += lvl.price * lvl.size;
+      for (const lvl of o.asks) total += lvl.price * lvl.size;
+    }
+  }
+  return Math.round(total * 100) / 100;
+}
+
+// Stub until a trade stream is ingested: deterministic so list ordering is stable.
+function computeVolume24hStub(marketId: string, tvl: number): number {
+  let h = 2166136261;
+  for (let i = 0; i < marketId.length; i++) {
+    h = Math.imul(h ^ marketId.charCodeAt(i), 16777619);
+  }
+  const bucket = ((h >>> 0) % 1000) / 1000;
+  const multiplier = 0.4 + bucket * 2.6;
+  const base = tvl > 0 ? tvl : 5_000 + bucket * 50_000;
+  return Math.round(base * multiplier * 100) / 100;
 }
 
 function filterPointsByRange(

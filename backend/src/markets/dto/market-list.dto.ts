@@ -47,6 +47,20 @@ export class MarketListItemDto implements MarketListItem {
 
   @ApiProperty({ type: [MarketListOutcomeDto] })
   outcomes!: MarketListOutcomeDto[];
+
+  @ApiProperty({
+    example: 124350.42,
+    description:
+      "Notional locked in the latest orderbook across all venues of this market, USD (sum of price × size over every level on every side).",
+  })
+  tvl!: number;
+
+  @ApiProperty({
+    example: 284120.11,
+    description:
+      "Trailing 24-hour notional traded, USD. Phase-1 deterministic stub derived from market id + TVL until trade-stream ingestion lands.",
+  })
+  volume24h!: number;
 }
 
 export class MarketListResponseDto implements MarketListResponse {

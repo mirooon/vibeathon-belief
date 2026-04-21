@@ -9,10 +9,20 @@ import {
   type HealthResponse,
   type MarketDetail,
   type MarketListResponse,
+  type MarketSortField,
+  type MarketSortOrder,
   type MarketStatus,
   type QuoteRequest,
   type QuoteResponse,
+  type Venue,
 } from "@vibeahack/shared";
+
+export interface MarketsFilter {
+  status?: MarketStatus;
+  venues?: Venue[];
+  sortBy?: MarketSortField;
+  sortOrder?: MarketSortOrder;
+}
 
 const API_URL: string =
   (import.meta.env.VITE_API_URL as string | undefined) ??
@@ -35,9 +45,14 @@ async function handle<T>(
 }
 
 export const api = {
-  listMarkets(filter?: { status?: MarketStatus }): Promise<MarketListResponse> {
+  listMarkets(filter?: MarketsFilter): Promise<MarketListResponse> {
     const params = new URLSearchParams();
     if (filter?.status) params.set("status", filter.status);
+    if (filter?.venues) {
+      for (const v of filter.venues) params.append("venue", v);
+    }
+    if (filter?.sortBy) params.set("sortBy", filter.sortBy);
+    if (filter?.sortOrder) params.set("sortOrder", filter.sortOrder);
     const qs = params.toString();
     return fetch(`${API_URL}/markets${qs ? `?${qs}` : ""}`).then((r) =>
       handle(r, (raw) => MarketListResponseSchema.parse(raw)),

@@ -29,8 +29,20 @@ export const MarketListItemSchema = z.object({
   quoteCurrency: QuoteCurrencySchema,
   venues: z.array(VenueSchema).min(1),
   outcomes: z.array(MarketListOutcomeSchema).min(2),
+  // Notional locked in the latest orderbook across all venues of this market, USD.
+  tvl: z.number().min(0),
+  // Trailing 24-hour notional traded, USD. Phase 1 is a deterministic stub derived
+  // from market id + TVL (no trade stream is captured yet); replace once trade
+  // history is ingested.
+  volume24h: z.number().min(0),
 });
 export type MarketListItem = z.infer<typeof MarketListItemSchema>;
+
+export const MarketSortFieldSchema = z.enum(["endDate", "volume24h", "tvl"]);
+export type MarketSortField = z.infer<typeof MarketSortFieldSchema>;
+
+export const MarketSortOrderSchema = z.enum(["asc", "desc"]);
+export type MarketSortOrder = z.infer<typeof MarketSortOrderSchema>;
 
 export const MarketListResponseSchema = z.object({
   items: z.array(MarketListItemSchema),

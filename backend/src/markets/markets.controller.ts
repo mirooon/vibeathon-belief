@@ -20,14 +20,19 @@ import {
 } from "@nestjs/swagger";
 import {
   QuoteRequestSchema,
+  VenueSchema,
+  type MarketSortField,
+  type MarketSortOrder,
   type MarketStatus,
   type QuoteRequest,
+  type Venue,
 } from "@vibeahack/shared";
 import { ZodValidationPipe } from "../common/zod-validation.pipe.js";
 import { MarketDetailDto } from "./dto/market-detail.dto.js";
 import { MarketListResponseDto } from "./dto/market-list.dto.js";
 import { QuoteRequestDto, QuoteResponseDto } from "./dto/quote.dto.js";
 import { MarketsService } from "./markets.service.js";
+import { VenueValues } from "./dto/common.dto.js";
 
 @ApiTags("markets")
 @Controller("markets")
@@ -46,12 +51,48 @@ export class MarketsController {
     enum: ["open", "closed", "resolved"],
     description: "Filter by market status.",
   })
+  @ApiQuery({
+    name: "venue",
+    required: false,
+    isArray: true,
+    enum: VenueValues,
+    description:
+      "Filter by supported venue. Repeatable: `?venue=polymarket&venue=kalshi` keeps markets listed on either. Omit to include all venues.",
+  })
+  @ApiQuery({
+    name: "sortBy",
+    required: false,
+    enum: ["endDate", "volume24h", "tvl"],
+    description: "Sort field. Defaults to `endDate`.",
+  })
+  @ApiQuery({
+    name: "sortOrder",
+    required: false,
+    enum: ["asc", "desc"],
+    description:
+      "Sort direction. Defaults to `asc` for `endDate` and `desc` for `volume24h` / `tvl`.",
+  })
   @ApiOkResponse({ type: MarketListResponseDto })
   async list(
     @Query("status") status?: MarketStatus,
+    @Query("venue") venue?: string | string[],
+    @Query("sortBy") sortBy?: MarketSortField,
+    @Query("sortOrder") sortOrder?: MarketSortOrder,
   ): Promise<MarketListResponseDto> {
-    const filter: { status?: MarketStatus } = {};
+    const filter: {
+      status?: MarketStatus;
+      venues?: Venue[];
+      sortBy?: MarketSortField;
+      sortOrder?: MarketSortOrder;
+    } = {};
     if (status) filter.status = status;
+    const rawVenues = venue === undefined ? [] : Array.isArray(venue) ? venue : [venue];
+    const parsedVenues = rawVenues
+      .map((v) => VenueSchema.safeParse(v))
+      .flatMap((r) => (r.success ? [r.data] : []));
+    if (parsedVenues.length > 0) filter.venues = parsedVenues;
+    if (sortBy) filter.sortBy = sortBy;
+    if (sortOrder) filter.sortOrder = sortOrder;
     return this.service.list(filter);
   }
 

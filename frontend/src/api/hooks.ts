@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import type { MarketStatus, QuoteRequest } from "@vibeahack/shared";
-import { api } from "./client.js";
+import type { QuoteRequest } from "@vibeahack/shared";
+import { api, type MarketsFilter } from "./client.js";
 
 export function useBeliefSearch(belief: string) {
   return useQuery({
@@ -20,9 +20,16 @@ export function useHealth() {
   });
 }
 
-export function useMarkets(filter?: { status?: MarketStatus }) {
+export function useMarkets(filter?: MarketsFilter) {
+  const venuesKey = filter?.venues ? [...filter.venues].sort().join(",") : "all";
   return useQuery({
-    queryKey: ["markets", filter?.status ?? "all"],
+    queryKey: [
+      "markets",
+      filter?.status ?? "all",
+      venuesKey,
+      filter?.sortBy ?? "endDate",
+      filter?.sortOrder ?? "default",
+    ],
     queryFn: () => api.listMarkets(filter),
   });
 }

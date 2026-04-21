@@ -3,7 +3,9 @@
 # Stages: deps → build → development → runtime
 # docker-compose uses `development` in Phase 1.
 
-ARG NODE_IMAGE=node:22.11.0-alpine
+# bookworm-slim (glibc) rather than alpine (musl) because @xenova/transformers
+# pulls in onnxruntime-node, whose prebuilt native binary is glibc-only.
+ARG NODE_IMAGE=node:22.11.0-bookworm-slim
 
 # ---- deps: install all workspace deps once ----
 FROM ${NODE_IMAGE} AS deps
@@ -14,6 +16,9 @@ COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
 # --ignore-scripts to avoid running postinstall hooks in workspaces we don't need here.
 RUN npm ci --ignore-scripts
+# sharp (transitive dep of @xenova/transformers) needs its install script to
+# download the platform-specific prebuilt binary.
+RUN npm rebuild sharp
 
 # ---- build: compile shared + backend TypeScript to dist/ ----
 FROM ${NODE_IMAGE} AS build
@@ -29,7 +34,8 @@ RUN npm run build --workspace=backend
 FROM ${NODE_IMAGE} AS development
 WORKDIR /app
 ENV NODE_ENV=development
-# wget is present in node:alpine and used by the compose healthcheck.
+# wget is used by the compose healthcheck; not in slim base.
+RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/*
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json* tsconfig.base.json ./
 COPY shared ./shared
@@ -44,6 +50,7 @@ CMD ["npm", "run", "start:dev"]
 FROM ${NODE_IMAGE} AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json* ./
 COPY shared/package.json ./shared/
 COPY backend/package.json ./backend/
