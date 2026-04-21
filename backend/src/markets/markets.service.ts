@@ -152,7 +152,7 @@ export class MarketsService {
         id: market._id,
         title: market.title,
         category: market.category,
-        endDate: market.endDate?.toISOString() ?? null,
+        endDate: market.endDate.toISOString(),
         status: market.status,
         quoteCurrency: market.quoteCurrency,
         venues,
