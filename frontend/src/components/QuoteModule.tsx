@@ -61,8 +61,8 @@ function RouteCard({
   const isOpt = route.isOptimal;
   const isFull = route.unfilledSize === 0;
   const summary = route.splits.length
-    ? route.splits.map((s) => `${s.size} on ${s.venue} @ $${s.avgPrice.toFixed(3)}`).join(" + ")
-      + (route.unfilledSize > 0 ? ` · ${route.unfilledSize} unfilled` : "")
+    ? route.splits.map((s) => `${fmtUsd(s.size * s.avgPrice)} on ${s.venue} @ $${s.avgPrice.toFixed(3)}`).join(" + ")
+      + (route.unfilledSize > 0 ? ` · ${fmtUsd(route.unfilledSize * route.blendedPrice)} unfilled` : "")
     : "—";
 
   return (
@@ -125,7 +125,7 @@ function RouteCard({
             fontFamily: "var(--font-mono)", fontSize: 11, fontVariantNumeric: "tabular-nums",
             color: isFull ? "var(--fg-muted)" : "var(--warning)",
           }}>
-            {route.filledSize}/{route.filledSize + route.unfilledSize}{!isFull && " · partial"}
+            {fmtUsd(route.filledSize * route.blendedPrice)}/{fmtUsd((route.filledSize + route.unfilledSize) * route.blendedPrice)}{!isFull && " · partial"}
           </span>
         </div>
       </div>
@@ -138,7 +138,7 @@ function RouteCard({
         <span>fees {fmtUsd(route.totalFees)}</span>
         <span>slip {route.estimatedSlippageBps} bps</span>
         {!isFull && (
-          <span style={{ color: "var(--warning)" }}>• {route.unfilledSize} shares unfilled</span>
+          <span style={{ color: "var(--warning)" }}>• {fmtUsd(route.unfilledSize * route.blendedPrice)} unfilled</span>
         )}
       </div>
     </div>
@@ -162,15 +162,15 @@ export function QuoteModule({ logicalMarketId, outcomes }: Props) {
   const initialOutcomeId = outcomes[0]?.id ?? "";
   const [outcomeId, setOutcomeId] = useState(initialOutcomeId);
   const [side, setSide] = useState<OrderSide>("buy");
-  const [size, setSize] = useState(600);
+  const [dollars, setDollars] = useState(100);
   const [userChoice, setUserChoice] = useState<string | null>(null);
   const [lastRequestKey, setLastRequestKey] = useState("");
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const req = outcomeId && size > 0 ? { outcomeId, side, size } : null;
+  const req = outcomeId && dollars > 0 ? { outcomeId, side, size: Math.max(1, Math.round(dollars / 0.5)) } : null;
   const { data: quote, isLoading, error } = useQuote(logicalMarketId, req);
 
-  const requestKey = `${outcomeId}|${side}|${size}`;
+  const requestKey = `${outcomeId}|${side}|${dollars}`;
   if (requestKey !== lastRequestKey) {
     setLastRequestKey(requestKey);
     setUserChoice(null);
@@ -221,24 +221,25 @@ export function QuoteModule({ logicalMarketId, outcomes }: Props) {
         <SidePill side="sell" label="Sell" active={side === "sell"} onClick={() => setSide("sell")} />
       </div>
 
-      {/* Size input */}
+      {/* Amount input (dollars) */}
       <div>
         <div style={{
           display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6,
         }}>
-          <span style={{ fontSize: 12, color: "var(--fg-3)", fontFamily: "var(--font-mono)" }}>size</span>
-          <span style={{ fontSize: 11, color: "var(--fg-muted)", fontFamily: "var(--font-mono)" }}>shares</span>
+          <span style={{ fontSize: 12, color: "var(--fg-3)", fontFamily: "var(--font-mono)" }}>amount</span>
+          <span style={{ fontSize: 11, color: "var(--fg-muted)", fontFamily: "var(--font-mono)" }}>USD</span>
         </div>
         <div style={{
           background: "var(--bg-panel)", border: "1px solid var(--ink-300)",
           borderRadius: 12, padding: "12px 14px",
-          display: "flex", alignItems: "center", gap: 10,
+          display: "flex", alignItems: "center", gap: 6,
         }}>
+          <span style={{ fontSize: 22, color: "var(--fg-3)", fontFamily: "var(--font-mono)", fontWeight: 500 }}>$</span>
           <input
             type="number"
-            value={size}
+            value={dollars}
             min={1}
-            onChange={(e) => setSize(Math.max(1, parseInt(e.target.value || "1", 10)))}
+            onChange={(e) => setDollars(Math.max(1, parseFloat(e.target.value || "1")))}
             style={{
               flex: 1, background: "transparent", border: 0, outline: "none",
               color: "var(--fg-1)", fontFamily: "var(--font-mono)",
@@ -246,15 +247,12 @@ export function QuoteModule({ logicalMarketId, outcomes }: Props) {
               fontVariantNumeric: "tabular-nums", padding: 0, minWidth: 0,
             }}
           />
-          <span style={{ fontSize: 12, color: "var(--fg-3)", fontFamily: "var(--font-mono)", flexShrink: 0 }}>
-            shares
-          </span>
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
-          {[10, 100, 500, "Max"].map((c) => (
+          {[10, 25, 100, 500, "Max"].map((c) => (
             <button
               key={c}
-              onClick={() => setSize(c === "Max" ? 1200 : (c as number))}
+              onClick={() => setDollars(c === "Max" ? 500 : (c as number))}
               style={{
                 background: "var(--bg-panel)", border: "1px solid var(--ink-300)", borderRadius: 8,
                 color: "var(--fg-2)", padding: "4px 10px", fontFamily: "inherit", fontSize: 12,
@@ -264,7 +262,7 @@ export function QuoteModule({ logicalMarketId, outcomes }: Props) {
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--ink-500)"; e.currentTarget.style.color = "var(--fg-1)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--ink-300)"; e.currentTarget.style.color = "var(--fg-2)"; }}
             >
-              {c}
+              {c === "Max" ? "Max" : `$${c}`}
             </button>
           ))}
           {selected && (
@@ -273,7 +271,7 @@ export function QuoteModule({ logicalMarketId, outcomes }: Props) {
               display: "inline-flex", alignItems: "center", gap: 4, fontFamily: "var(--font-mono)",
             }}>
               ≈ <span style={{ color: "var(--fg-1)", fontVariantNumeric: "tabular-nums" }}>
-                {fmtUsd(youPay)}
+                {selected.filledSize} shares
               </span>
             </span>
           )}
