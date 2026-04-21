@@ -53,13 +53,35 @@ interface LevelWithVenue extends OrderBookLevel {
   venueOrder: number;
 }
 
+/**
+ * Effective per-share price accounting for taker fees.
+ *   - Buy: buyer pays `price * (1 + takerBps/10_000)`.
+ *   - Sell: seller receives `price * (1 - takerBps/10_000)`.
+ *
+ * Smart-order routing must rank levels by effective price, not raw price,
+ * otherwise a zero-fee venue's level can be skipped in favor of a
+ * raw-cheaper level on a fee-charging venue whose post-fee cost is worse.
+ */
+function effectivePrice(
+  level: LevelWithVenue,
+  side: OrderSide,
+  feeConfig: Record<Venue, VenueFeeConfig>,
+): number {
+  const takerBps = feeConfig[level.venue]?.takerBps ?? 0;
+  const adj = takerBps / 10_000;
+  return side === "buy" ? level.price * (1 + adj) : level.price * (1 - adj);
+}
+
 function sortLevelsForSide(
   levels: LevelWithVenue[],
   side: OrderSide,
+  feeConfig: Record<Venue, VenueFeeConfig>,
 ): LevelWithVenue[] {
   return [...levels].sort((a, b) => {
-    if (a.price !== b.price) {
-      return side === "buy" ? a.price - b.price : b.price - a.price;
+    const aEff = effectivePrice(a, side, feeConfig);
+    const bEff = effectivePrice(b, side, feeConfig);
+    if (aEff !== bEff) {
+      return side === "buy" ? aEff - bEff : bEff - aEff;
     }
     return a.venueOrder - b.venueOrder;
   });
@@ -162,7 +184,7 @@ export function buildQuote(input: BuildQuoteInput): QuoteResponse {
     }
   }
 
-  const sorted = sortLevelsForSide(tagged, request.side);
+  const sorted = sortLevelsForSide(tagged, request.side, feeConfig);
   const optimal = walk(sorted, request.size, request.side, feeConfig);
 
   const optimalRoute: QuoteRoute = {
@@ -185,7 +207,7 @@ export function buildQuote(input: BuildQuoteInput): QuoteResponse {
         venue,
         venueOrder: venueOrderOf(venue),
       }));
-    const venueSorted = sortLevelsForSide(venueLevels, request.side);
+    const venueSorted = sortLevelsForSide(venueLevels, request.side, feeConfig);
     const result = walk(venueSorted, request.size, request.side, feeConfig);
     singleRoutes.push({
       id: `single:${venue}`,
@@ -234,7 +256,7 @@ export function buildBudgetQuote(input: BuildBudgetQuoteInput): BudgetRoute {
     }
   }
 
-  const sorted = sortLevelsForSide(tagged, "buy");
+  const sorted = sortLevelsForSide(tagged, "buy", feeConfig);
   const topOfBook = sorted[0]?.price ?? 0;
 
   let remainingBudget = budgetUsd;

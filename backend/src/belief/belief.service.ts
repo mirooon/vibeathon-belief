@@ -118,6 +118,7 @@ export class BeliefService implements OnModuleInit {
     await this.vectorsReady;
 
     const limit = req.limit ?? 5;
+    const minScore = req.minScore ?? 0;
     const queryVec = await this.embedding.encode(req.belief);
 
     const markets = await this.logicalMarketModel
@@ -130,7 +131,9 @@ export class BeliefService implements OnModuleInit {
       const vec = this.marketVectors.get(market._id);
       if (!vec) continue;
       const score = this.embedding.cosineSimilarity(queryVec, vec);
-      if (score > 0) scored.push({ marketId: market._id, score });
+      if (score > 0 && score >= minScore) {
+        scored.push({ marketId: market._id, score });
+      }
     }
 
     scored.sort((a, b) => b.score - a.score);

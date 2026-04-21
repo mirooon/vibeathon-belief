@@ -5,6 +5,7 @@ import { VenueSchema } from "./venue.js";
 export const BeliefSearchRequestSchema = z.object({
   belief: z.string().min(3).max(500),
   limit: z.number().int().min(1).max(20).optional().default(5),
+  minScore: z.number().min(0).max(1).optional().default(0),
 });
 export type BeliefSearchRequest = z.infer<typeof BeliefSearchRequestSchema>;
 

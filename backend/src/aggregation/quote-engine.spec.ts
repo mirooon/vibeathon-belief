@@ -203,6 +203,42 @@ describe("buildQuote — §8 coverage", () => {
     expect(optimal.blendedPrice).toBeCloseTo(0.4075, 4);
   });
 
+  it("fee-aware sort: prefers a raw-pricier zero-fee venue over a raw-cheaper fee-charging venue when post-fee is worse", () => {
+    // Raw: kalshi 0.505 < polymarket 0.510.
+    // Post-fee buy effective: kalshi 0.505 * 1.02 = 0.5151, polymarket 0.510 * 1.0 = 0.510.
+    // Optimal router MUST take polymarket first.
+    const perVenueLevels: BuildQuoteInput["perVenueLevels"] = [
+      { venue: "polymarket", levels: [{ price: 0.51, size: 400 }] },
+      { venue: "kalshi", levels: [{ price: 0.505, size: 400 }] },
+    ];
+
+    const res = buildQuote(mkInput(perVenueLevels, 400));
+    const optimal = route(res, "optimal");
+
+    expect(optimal.splits).toEqual([
+      { venue: "polymarket", size: 400, avgPrice: 0.51, fees: 0 },
+    ]);
+    expect(optimal.filledSize).toBe(400);
+  });
+
+  it("fee-aware sort (sell): prefers a raw-lower zero-fee bid when post-fee proceeds are higher", () => {
+    // Raw bids: kalshi 0.51 > polymarket 0.505.
+    // Post-fee sell effective: kalshi 0.51 * 0.98 = 0.4998, polymarket 0.505 * 1.0 = 0.505.
+    // Optimal router MUST hit polymarket first because the seller nets more.
+    const perVenueLevels: BuildQuoteInput["perVenueLevels"] = [
+      { venue: "polymarket", levels: [{ price: 0.505, size: 300 }] },
+      { venue: "kalshi", levels: [{ price: 0.51, size: 300 }] },
+    ];
+
+    const res = buildQuote(mkInput(perVenueLevels, 300, "sell"));
+    const optimal = route(res, "optimal");
+
+    expect(optimal.splits).toEqual([
+      { venue: "polymarket", size: 300, avgPrice: 0.505, fees: 0 },
+    ]);
+    expect(optimal.filledSize).toBe(300);
+  });
+
   it("emits exactly one optimal route even when all venues are empty", () => {
     const res = buildQuote(mkInput([], 100));
 
@@ -309,6 +345,37 @@ describe("buildBudgetQuote — USD-sized routing", () => {
     expect(r.splits[0]?.fees).toBeCloseTo(1.96, 2);
     expect(r.totalCostUsd).toBeCloseTo(100, 2);
     expect(r.unfilledBudgetUsd).toBeCloseTo(0, 2);
+  });
+
+  it("fee-aware sort: spends the full budget on a raw-pricier zero-fee venue when post-fee is cheaper", () => {
+    // Raw: kalshi 0.50 < polymarket 0.51. But kalshi has 200 bps → effective 0.51.
+    // Polymarket has 0 bps → effective 0.51. Tie, but polymarket has lower
+    // venueOrder in ALL_VENUES (stable tiebreak) so it fills first. Then
+    // remaining budget walks to kalshi.
+    // More decisive: kalshi 0.505 (eff 0.5151) vs polymarket 0.51 (eff 0.51).
+    const perVenueLevels: BuildBudgetQuoteInput["perVenueLevels"] = [
+      { venue: "polymarket", levels: [{ price: 0.51, size: 100 }] },
+      { venue: "kalshi", levels: [{ price: 0.505, size: 200 }] },
+    ];
+
+    const r = buildBudgetQuote({
+      perVenueLevels,
+      budgetUsd: 51,
+      feeConfig,
+    });
+
+    // $51 at polymarket 0.51 with 0 fees → 100 shares exactly.
+    // Should NOT touch kalshi at all.
+    expect(r.splits).toEqual([
+      {
+        venue: "polymarket",
+        sizeShares: 100,
+        avgPrice: 0.51,
+        notionalUsd: 51,
+        fees: 0,
+      },
+    ]);
+    expect(r.unfilledBudgetUsd).toBe(0);
   });
 
   it("returns an empty route when no venue has depth", () => {

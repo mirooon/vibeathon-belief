@@ -42,6 +42,15 @@ export class BeliefController {
           default: 5,
           example: 5,
         },
+        minScore: {
+          type: "number",
+          minimum: 0,
+          maximum: 1,
+          default: 0,
+          example: 0.3,
+          description:
+            "Cosine-similarity floor. Matches below this are dropped — `limit` becomes a cap, not a quota.",
+        },
       },
     },
   })
@@ -68,9 +77,13 @@ export class BeliefController {
   @ApiResponse({ status: 422, description: "Validation error — belief too short/long." })
   search(
     @Body(new ZodValidationPipe(BeliefSearchRequestSchema))
-    req: { belief: string; limit?: number },
+    req: { belief: string; limit?: number; minScore?: number },
   ) {
-    return this.beliefService.search({ belief: req.belief, limit: req.limit ?? 5 });
+    return this.beliefService.search({
+      belief: req.belief,
+      limit: req.limit ?? 5,
+      minScore: req.minScore ?? 0,
+    });
   }
 
   @Post("route")
