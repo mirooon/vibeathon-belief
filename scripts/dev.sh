@@ -5,9 +5,10 @@
 # Mongo is NOT managed here — bring your own, either native or `docker compose up -d mongodb`.
 #
 # Usage:
-#   ./scripts/dev.sh            # run both, stream logs (Ctrl-C to stop both)
-#   ./scripts/dev.sh --no-check # skip the mongo reachability check
-#   ./scripts/dev.sh --seed     # run `npm run seed` before launching
+#   ./scripts/dev.sh                 # run both, stream logs (Ctrl-C to stop both)
+#   ./scripts/dev.sh --no-check      # skip the mongo reachability check
+#   ./scripts/dev.sh --seed          # run `npm run seed` before launching
+#   ./scripts/dev.sh --with-worker   # also run the worker locally (tsx watch) for live indexing
 
 set -euo pipefail
 
@@ -17,11 +18,13 @@ cd "${REPO_ROOT}"
 
 CHECK_MONGO=1
 RUN_SEED=0
+WITH_WORKER=0
 for arg in "$@"; do
   case "${arg}" in
     --no-check) CHECK_MONGO=0 ;;
     --seed) RUN_SEED=1 ;;
-    -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --with-worker) WITH_WORKER=1 ;;
+    -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown arg: ${arg}" >&2; exit 2 ;;
   esac
 done
@@ -95,27 +98,41 @@ step "freeing dev ports (3000 backend, 5173 frontend)"
 free_port 3000 backend
 free_port 5173 frontend
 
-step "starting backend (NestJS watch) + frontend (Vite)"
+if [[ ${WITH_WORKER} -eq 1 ]]; then
+  step "starting backend (NestJS watch) + frontend (Vite) + worker (tsx watch)"
+else
+  step "starting backend (NestJS watch) + frontend (Vite)"
+fi
 info "backend  → http://localhost:3000/api/v1  (Swagger: /docs)"
 info "frontend → http://localhost:5173"
-info "press Ctrl-C to stop both"
+if [[ ${WITH_WORKER} -eq 1 ]]; then
+  info "worker   → live Polymarket sync (no HTTP port)"
+fi
+info "press Ctrl-C to stop"
 
-# Launch both, forward stdout/stderr, and make sure Ctrl-C kills the whole group.
+# Launch, forward stdout/stderr, and make sure Ctrl-C kills the whole group.
 MONGO_URL="${MONGO_URL}" npm run start:dev --workspace=backend &
 BACKEND_PID=$!
 
 npm run dev --workspace=frontend &
 FRONTEND_PID=$!
 
+WORKER_PID=""
+if [[ ${WITH_WORKER} -eq 1 ]]; then
+  MONGO_URL="${MONGO_URL}" npm run start:dev --workspace=worker &
+  WORKER_PID=$!
+fi
+
 cleanup() {
   printf '\n'
   info "stopping…"
-  kill "${BACKEND_PID}" "${FRONTEND_PID}" 2>/dev/null || true
-  wait "${BACKEND_PID}" "${FRONTEND_PID}" 2>/dev/null || true
+  kill "${BACKEND_PID}" "${FRONTEND_PID}" ${WORKER_PID:+"${WORKER_PID}"} 2>/dev/null || true
+  wait "${BACKEND_PID}" "${FRONTEND_PID}" ${WORKER_PID:+"${WORKER_PID}"} 2>/dev/null || true
 }
 trap cleanup INT TERM EXIT
 
-# Poll both PIDs (portable replacement for `wait -n`, which needs bash 4.3+).
-while kill -0 "${BACKEND_PID}" 2>/dev/null && kill -0 "${FRONTEND_PID}" 2>/dev/null; do
+# Poll PIDs (portable replacement for `wait -n`, which needs bash 4.3+).
+while kill -0 "${BACKEND_PID}" 2>/dev/null && kill -0 "${FRONTEND_PID}" 2>/dev/null \
+      && { [[ -z "${WORKER_PID}" ]] || kill -0 "${WORKER_PID}" 2>/dev/null; }; do
   sleep 1
 done
