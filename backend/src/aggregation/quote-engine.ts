@@ -1,5 +1,7 @@
 import {
   ALL_VENUES,
+  type BudgetRoute,
+  type BudgetRouteSplit,
   type OrderBookLevel,
   type OrderSide,
   type QuoteRequest,
@@ -201,5 +203,107 @@ export function buildQuote(input: BuildQuoteInput): QuoteResponse {
       size: request.size,
     },
     routes: [optimalRoute, ...singleRoutes],
+  };
+}
+
+export interface BuildBudgetQuoteInput {
+  perVenueLevels: Array<{ venue: Venue; levels: OrderBookLevel[] }>;
+  budgetUsd: number;
+  feeConfig: Record<Venue, VenueFeeConfig>;
+}
+
+/**
+ * Greedy-split walk sized by USD budget (not shares).
+ *
+ * Always BUY semantics: levels are asks, cheapest price first. At each level
+ * the cost to take `s` shares is `s * price * (1 + takerBps/10_000)` — the
+ * function stops when the remaining budget would be exhausted and takes a
+ * partial slice of that level at fractional shares.
+ *
+ * totalCostUsd = filledNotionalUsd + totalFeesUsd ≤ budgetUsd.
+ * unfilledBudgetUsd > 0 when cross-venue depth is thinner than the budget.
+ */
+export function buildBudgetQuote(input: BuildBudgetQuoteInput): BudgetRoute {
+  const { perVenueLevels, budgetUsd, feeConfig } = input;
+
+  const tagged: LevelWithVenue[] = [];
+  for (const { venue, levels } of perVenueLevels) {
+    for (const level of levels) {
+      if (level.size <= 0 || level.price <= 0) continue;
+      tagged.push({ ...level, venue, venueOrder: venueOrderOf(venue) });
+    }
+  }
+
+  const sorted = sortLevelsForSide(tagged, "buy");
+  const topOfBook = sorted[0]?.price ?? 0;
+
+  let remainingBudget = budgetUsd;
+  const perVenue = new Map<
+    Venue,
+    { sizeShares: number; notional: number; fees: number; venueOrder: number }
+  >();
+
+  let filledSizeShares = 0;
+  let filledNotionalUsd = 0;
+  let totalFeesUsd = 0;
+
+  for (const level of sorted) {
+    if (remainingBudget <= 0) break;
+    const takerBps = feeConfig[level.venue]?.takerBps ?? 0;
+    const costPerShare = level.price * (1 + takerBps / 10_000);
+    if (costPerShare <= 0) continue;
+
+    const sharesIfFullyTaken = remainingBudget / costPerShare;
+    const take = Math.min(level.size, sharesIfFullyTaken);
+    if (take <= 0) continue;
+
+    const notional = take * level.price;
+    const fees = (notional * takerBps) / 10_000;
+
+    const entry = perVenue.get(level.venue) ?? {
+      sizeShares: 0,
+      notional: 0,
+      fees: 0,
+      venueOrder: level.venueOrder,
+    };
+    entry.sizeShares += take;
+    entry.notional += notional;
+    entry.fees += fees;
+    perVenue.set(level.venue, entry);
+
+    filledSizeShares += take;
+    filledNotionalUsd += notional;
+    totalFeesUsd += fees;
+    remainingBudget -= notional + fees;
+  }
+
+  const splits: BudgetRouteSplit[] = [...perVenue.entries()].map(
+    ([venue, { sizeShares, notional, fees }]) => {
+      const avgPrice = sizeShares > 0 ? notional / sizeShares : 0;
+      return {
+        venue,
+        sizeShares: round4(sizeShares),
+        avgPrice: round4(avgPrice),
+        notionalUsd: round2(notional),
+        fees: round2(fees),
+      };
+    },
+  );
+
+  const blendedPrice =
+    filledSizeShares > 0 ? round4(filledNotionalUsd / filledSizeShares) : 0;
+  const totalCostUsd = round2(filledNotionalUsd + totalFeesUsd);
+  const unfilledBudgetUsd = round2(Math.max(0, budgetUsd - (filledNotionalUsd + totalFeesUsd)));
+  const estimatedSlippageBps = computeSlippageBps(topOfBook, blendedPrice, "buy");
+
+  return {
+    splits,
+    filledSizeShares: round4(filledSizeShares),
+    filledNotionalUsd: round2(filledNotionalUsd),
+    totalFeesUsd: round2(totalFeesUsd),
+    totalCostUsd,
+    unfilledBudgetUsd,
+    blendedPrice,
+    estimatedSlippageBps,
   };
 }

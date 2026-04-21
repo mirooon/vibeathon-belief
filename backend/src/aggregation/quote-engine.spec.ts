@@ -1,6 +1,11 @@
 import type { QuoteResponse, QuoteRoute, Venue } from "@vibeahack/shared";
 import { VENUE_FEES, type VenueFeeConfig } from "../config/venue-fees.js";
-import { buildQuote, type BuildQuoteInput } from "./quote-engine.js";
+import {
+  buildBudgetQuote,
+  buildQuote,
+  type BuildBudgetQuoteInput,
+  type BuildQuoteInput,
+} from "./quote-engine.js";
 
 const feeConfig: Record<Venue, VenueFeeConfig> = VENUE_FEES;
 
@@ -224,5 +229,99 @@ describe("buildQuote — §8 coverage", () => {
     ]);
     // (300*0.515 + 100*0.49)/400 = 0.5088 (rounded)
     expect(optimal.blendedPrice).toBeCloseTo(0.5088, 4);
+  });
+});
+
+describe("buildBudgetQuote — USD-sized routing", () => {
+  it("splits a $100 budget across the cheapest venues first", () => {
+    const perVenueLevels: BuildBudgetQuoteInput["perVenueLevels"] = [
+      { venue: "polymarket", levels: [{ price: 0.5, size: 100 }] },
+      { venue: "kalshi", levels: [{ price: 0.6, size: 200 }] },
+    ];
+
+    const r = buildBudgetQuote({
+      perVenueLevels,
+      budgetUsd: 100,
+      feeConfig,
+    });
+
+    // Polymarket: 100 shares × $0.50 = $50 (0 bps fees).
+    // Remaining $50 goes to Kalshi: at $0.60 with 200 bps, cost per share =
+    // 0.60 * 1.02 = 0.612 → 50 / 0.612 ≈ 81.6993 shares. Notional ≈ $49.02,
+    // fees ≈ $0.98, total ≈ $50.
+    expect(r.splits).toHaveLength(2);
+    expect(r.splits[0]).toMatchObject({ venue: "polymarket", avgPrice: 0.5 });
+    expect(r.splits[0]?.sizeShares).toBe(100);
+    expect(r.splits[0]?.notionalUsd).toBe(50);
+    expect(r.splits[0]?.fees).toBe(0);
+
+    expect(r.splits[1]).toMatchObject({ venue: "kalshi", avgPrice: 0.6 });
+    expect(r.splits[1]?.notionalUsd).toBeCloseTo(49.02, 2);
+    expect(r.splits[1]?.fees).toBeCloseTo(0.98, 2);
+
+    expect(r.totalCostUsd).toBeCloseTo(100, 2);
+    expect(r.unfilledBudgetUsd).toBeCloseTo(0, 2);
+    expect(r.filledNotionalUsd).toBeCloseTo(99.02, 2);
+    expect(r.totalFeesUsd).toBeCloseTo(0.98, 2);
+  });
+
+  it("reports unfilled budget when cross-venue depth is insufficient", () => {
+    const perVenueLevels: BuildBudgetQuoteInput["perVenueLevels"] = [
+      { venue: "polymarket", levels: [{ price: 0.5, size: 50 }] },
+    ];
+
+    const r = buildBudgetQuote({
+      perVenueLevels,
+      budgetUsd: 100,
+      feeConfig,
+    });
+
+    expect(r.splits).toEqual([
+      {
+        venue: "polymarket",
+        sizeShares: 50,
+        avgPrice: 0.5,
+        notionalUsd: 25,
+        fees: 0,
+      },
+    ]);
+    expect(r.filledSizeShares).toBe(50);
+    expect(r.totalCostUsd).toBe(25);
+    expect(r.unfilledBudgetUsd).toBe(75);
+  });
+
+  it("accounts for per-venue taker fees when the whole budget fills on one venue", () => {
+    // Kalshi only: 200 bps taker. cost/share = 0.50 * 1.02 = 0.51.
+    // $100 / 0.51 ≈ 196.0784 shares. notional ≈ 98.04, fees ≈ 1.96, total ≈ 100.
+    const perVenueLevels: BuildBudgetQuoteInput["perVenueLevels"] = [
+      { venue: "kalshi", levels: [{ price: 0.5, size: 500 }] },
+    ];
+
+    const r = buildBudgetQuote({
+      perVenueLevels,
+      budgetUsd: 100,
+      feeConfig,
+    });
+
+    expect(r.splits).toHaveLength(1);
+    expect(r.splits[0]?.venue).toBe("kalshi");
+    expect(r.splits[0]?.notionalUsd).toBeCloseTo(98.04, 2);
+    expect(r.splits[0]?.fees).toBeCloseTo(1.96, 2);
+    expect(r.totalCostUsd).toBeCloseTo(100, 2);
+    expect(r.unfilledBudgetUsd).toBeCloseTo(0, 2);
+  });
+
+  it("returns an empty route when no venue has depth", () => {
+    const r = buildBudgetQuote({
+      perVenueLevels: [],
+      budgetUsd: 100,
+      feeConfig,
+    });
+
+    expect(r.splits).toEqual([]);
+    expect(r.filledSizeShares).toBe(0);
+    expect(r.totalCostUsd).toBe(0);
+    expect(r.unfilledBudgetUsd).toBe(100);
+    expect(r.blendedPrice).toBe(0);
   });
 });
