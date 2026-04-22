@@ -16,6 +16,41 @@ const STATUS_CHOICES: Array<{ label: string; value: MarketStatus | undefined }> 
   { label: "All", value: undefined },
 ];
 
+type SortField = "volume24h" | "liquidity" | "endDate";
+type SortOrder = "asc" | "desc";
+
+type SortFieldChoice = {
+  label: string;
+  value: SortField;
+  defaultOrder: SortOrder;
+  ascLabel: string;
+  descLabel: string;
+};
+
+const SORT_FIELDS: SortFieldChoice[] = [
+  {
+    label: "24hr Volume",
+    value: "volume24h",
+    defaultOrder: "desc",
+    ascLabel: "Low to high",
+    descLabel: "High to low",
+  },
+  {
+    label: "Liquidity",
+    value: "liquidity",
+    defaultOrder: "desc",
+    ascLabel: "Low to high",
+    descLabel: "High to low",
+  },
+  {
+    label: "End Date",
+    value: "endDate",
+    defaultOrder: "asc",
+    ascLabel: "Ending soon",
+    descLabel: "Ending latest",
+  },
+];
+
 function formatUsd(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}k`;
@@ -54,6 +89,29 @@ function FilterIcon() {
   );
 }
 
+function SortIcon() {
+  return (
+    <svg className="lead" width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M5 3v10m0 0l-3-3m3 3l3-3M11 13V3m0 0l-3 3m3-3l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SortDirIcon({ order }: { order: SortOrder }) {
+  if (order === "desc") {
+    return (
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <path d="M8 3v10m0 0l-4-4m4 4l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <path d="M8 13V3m0 0l-4 4m4-4l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function VenueIcon() {
   return (
     <svg className="lead" width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -76,6 +134,21 @@ export function Events() {
   const [venue, setVenue] = useState<Venue | null>(null);
   const [category, setCategory] = useState<string | null>(null);
   const [search, setSearch] = useState<string>("");
+  const [sortField, setSortField] = useState<SortField>("volume24h");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+
+  const sortFieldChoice =
+    SORT_FIELDS.find((c) => c.value === sortField) ?? SORT_FIELDS[0]!;
+
+  const handleSortFieldChange = (value: SortField) => {
+    const next = SORT_FIELDS.find((c) => c.value === value) ?? SORT_FIELDS[0]!;
+    setSortField(next.value);
+    setSortOrder(next.defaultOrder);
+  };
+
+  const toggleSortOrder = () => {
+    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+  };
 
   const filter = {
     ...(status ? { status } : {}),
@@ -93,12 +166,27 @@ export function Events() {
   const visibleItems = useMemo(() => {
     if (!data) return [];
     const q = search.trim().toLowerCase();
-    return data.items.filter((e) => {
+    const filtered = data.items.filter((e) => {
       if (category && e.category !== category) return false;
       if (q && !e.title.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [data, category, search]);
+    const dir = sortOrder === "asc" ? 1 : -1;
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortField) {
+        case "volume24h":
+          return (a.volume24h - b.volume24h) * dir;
+        case "liquidity":
+          return (a.liquidity - b.liquidity) * dir;
+        case "endDate":
+          return (
+            (new Date(a.endDate).getTime() - new Date(b.endDate).getTime()) *
+            dir
+          );
+      }
+    });
+    return sorted;
+  }, [data, category, search, sortField, sortOrder]);
 
   return (
     <div className="pm-panel">
@@ -116,6 +204,39 @@ export function Events() {
       </div>
 
       <div className="pm-controls-row">
+        <label className="pm-pill-select">
+          <SortIcon />
+          <select
+            value={sortField}
+            onChange={(e) => handleSortFieldChange(e.target.value as SortField)}
+          >
+            {SORT_FIELDS.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <button
+          type="button"
+          className="pm-pill-btn"
+          onClick={toggleSortOrder}
+          title="Toggle sort direction"
+          aria-label={
+            sortOrder === "asc"
+              ? sortFieldChoice.ascLabel
+              : sortFieldChoice.descLabel
+          }
+        >
+          <SortDirIcon order={sortOrder} />
+          <span>
+            {sortOrder === "asc"
+              ? sortFieldChoice.ascLabel
+              : sortFieldChoice.descLabel}
+          </span>
+        </button>
+
         <label className="pm-pill-select">
           <FilterIcon />
           <select
