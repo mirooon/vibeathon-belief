@@ -7,7 +7,8 @@
     "shared",
     "backend",
     "frontend",
-    "worker"
+    "worker",
+    "mcp"
   ],
   "engines": {
     "node": ">=22.11.0"
@@ -30,12 +31,15 @@
     "build:backend": "npm run build --workspace=backend",
     "build:frontend": "npm run build --workspace=frontend",
     "build:worker": "npm run build --workspace=worker",
-    "build": "npm run build:shared && npm run build:backend && npm run build:frontend && npm run build:worker",
+    "build:mcp": "npm run build --workspace=mcp",
+    "build": "npm run build:shared && npm run build:backend && npm run build:frontend && npm run build:worker && npm run build:mcp",
     "lint:backend": "npm run lint --workspace=backend",
     "lint:frontend": "npm run lint --workspace=frontend",
     "typecheck:backend": "npm run typecheck --workspace=backend",
     "typecheck:frontend": "npm run typecheck --workspace=frontend",
     "typecheck:worker": "npm run typecheck --workspace=worker",
+    "typecheck:mcp": "npm run typecheck --workspace=mcp",
+    "dev:mcp": "npm run start:dev --workspace=mcp",
     "seed": "npm run seed --workspace=backend",
     "test:e2e": "npm run test:e2e --workspace=backend"
   }

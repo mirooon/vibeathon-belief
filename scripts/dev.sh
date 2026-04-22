@@ -9,6 +9,7 @@
 #   ./scripts/dev.sh --no-check      # skip the mongo reachability check
 #   ./scripts/dev.sh --seed          # run `npm run seed` before launching
 #   ./scripts/dev.sh --with-worker   # also run the worker locally (tsx watch) for live indexing
+#   ./scripts/dev.sh --with-mcp      # also run `tsc --watch` on mcp/ (keeps mcp/dist fresh)
 
 set -euo pipefail
 
@@ -19,12 +20,14 @@ cd "${REPO_ROOT}"
 CHECK_MONGO=1
 RUN_SEED=0
 WITH_WORKER=0
+WITH_MCP=0
 for arg in "$@"; do
   case "${arg}" in
     --no-check) CHECK_MONGO=0 ;;
     --seed) RUN_SEED=1 ;;
     --with-worker) WITH_WORKER=1 ;;
-    -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --with-mcp) WITH_MCP=1 ;;
+    -h|--help) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown arg: ${arg}" >&2; exit 2 ;;
   esac
 done
@@ -98,15 +101,17 @@ step "freeing dev ports (3000 backend, 5173 frontend)"
 free_port 3000 backend
 free_port 5173 frontend
 
-if [[ ${WITH_WORKER} -eq 1 ]]; then
-  step "starting backend (NestJS watch) + frontend (Vite) + worker (tsx watch)"
-else
-  step "starting backend (NestJS watch) + frontend (Vite)"
-fi
+PROCS=("backend (NestJS watch)" "frontend (Vite)")
+[[ ${WITH_WORKER} -eq 1 ]] && PROCS+=("worker (tsx watch)")
+[[ ${WITH_MCP} -eq 1 ]] && PROCS+=("mcp (tsc --watch)")
+step "starting $(IFS=' + '; echo "${PROCS[*]}")"
 info "backend  → http://localhost:3000/api/v1  (Swagger: /docs)"
 info "frontend → http://localhost:5173"
 if [[ ${WITH_WORKER} -eq 1 ]]; then
   info "worker   → live Polymarket sync (no HTTP port)"
+fi
+if [[ ${WITH_MCP} -eq 1 ]]; then
+  info "mcp      → keeps mcp/dist fresh (MCP clients launch node mcp/dist/main.js on demand)"
 fi
 info "press Ctrl-C to stop"
 
@@ -123,16 +128,27 @@ if [[ ${WITH_WORKER} -eq 1 ]]; then
   WORKER_PID=$!
 fi
 
+MCP_PID=""
+if [[ ${WITH_MCP} -eq 1 ]]; then
+  npm run build:watch --workspace=mcp &
+  MCP_PID=$!
+fi
+
 cleanup() {
   printf '\n'
   info "stopping…"
-  kill "${BACKEND_PID}" "${FRONTEND_PID}" ${WORKER_PID:+"${WORKER_PID}"} 2>/dev/null || true
-  wait "${BACKEND_PID}" "${FRONTEND_PID}" ${WORKER_PID:+"${WORKER_PID}"} 2>/dev/null || true
+  kill "${BACKEND_PID}" "${FRONTEND_PID}" \
+       ${WORKER_PID:+"${WORKER_PID}"} \
+       ${MCP_PID:+"${MCP_PID}"} 2>/dev/null || true
+  wait "${BACKEND_PID}" "${FRONTEND_PID}" \
+       ${WORKER_PID:+"${WORKER_PID}"} \
+       ${MCP_PID:+"${MCP_PID}"} 2>/dev/null || true
 }
 trap cleanup INT TERM EXIT
 
 # Poll PIDs (portable replacement for `wait -n`, which needs bash 4.3+).
 while kill -0 "${BACKEND_PID}" 2>/dev/null && kill -0 "${FRONTEND_PID}" 2>/dev/null \
-      && { [[ -z "${WORKER_PID}" ]] || kill -0 "${WORKER_PID}" 2>/dev/null; }; do
+      && { [[ -z "${WORKER_PID}" ]] || kill -0 "${WORKER_PID}" 2>/dev/null; } \
+      && { [[ -z "${MCP_PID}" ]] || kill -0 "${MCP_PID}" 2>/dev/null; }; do
   sleep 1
 done
