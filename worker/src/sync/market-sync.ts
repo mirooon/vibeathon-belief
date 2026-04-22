@@ -4,6 +4,10 @@ import {
   type KalshiApiMarket,
 } from '../adapters/kalshi.client';
 import {
+  fetchAllMarkets as fetchAllMyriadMarkets,
+  type MyriadApiMarket,
+} from '../adapters/myriad.client';
+import {
   fetchAllEvents as fetchAllPolyEvents,
   type PolyApiEvent,
   type PolyApiMarket,
@@ -446,13 +450,207 @@ async function syncKalshi(): Promise<void> {
   );
 }
 
+// Myriad markets are AMM-based with quote tokens that vary per market/network:
+// USDC, USD1 etc. for real markets; PTS (Myriad points) and similar for test
+// networks. The aggregator assumes USD-denominated notionals, so we include
+// only stablecoin-denominated markets.
+const MYRIAD_STABLE_SYMBOLS = new Set([
+  'USDC',
+  'USDC.E',
+  'USDBC',
+  'USDT',
+  'USD1',
+  'DAI',
+]);
+
+function myriadMarketStatus(state: string): Status {
+  if (state === 'resolved') return 'resolved';
+  if (state === 'closed' || state === 'voided') return 'closed';
+  return 'open';
+}
+
+function myriadCategory(topics: string[] | undefined): string {
+  const first = topics?.[0]?.trim();
+  return first ? first.toLowerCase() : 'general';
+}
+
+/**
+ * Upsert one Myriad market. Myriad markets natively carry N outcomes (binary
+ * or multi-way), so we model each as a single-child logical event, mirroring
+ * how standalone binaries are wrapped on Polymarket/Kalshi.
+ *
+ * sourceMarketId is composed as `${networkId}:${id}` so the orderbook and
+ * price syncs can round-trip back to the (id, network_id) pair the Myriad
+ * API requires.
+ */
+async function upsertMyriadMarket(m: MyriadApiMarket): Promise<boolean> {
+  if (!m.outcomes?.length) return false;
+  if (m.state !== 'open') return false;
+  if (!MYRIAD_STABLE_SYMBOLS.has(m.token?.symbol?.toUpperCase() ?? '')) {
+    return false;
+  }
+  const expires = m.expiresAt ? new Date(m.expiresAt) : null;
+  if (!expires || isNaN(expires.getTime()) || expires.getTime() <= Date.now()) {
+    return false;
+  }
+
+  const LogicalMarket = getLogicalMarketModel();
+  const VenueMarket = getVenueMarketModel();
+  const LogicalEvent = getLogicalEventModel();
+  const VenueEvent = getVenueEventModel();
+
+  const sourceMarketId = `${m.networkId}:${m.id}`;
+  const logicalMarketId = `myriad-${sourceMarketId}`;
+  const logicalEventId = `myriad-event-${sourceMarketId}`;
+  const category = myriadCategory(m.topics);
+  const status = myriadMarketStatus(m.state);
+
+  const outcomeMap: Record<string, string> = {};
+  const canonicalOutcomes = m.outcomes.map((o, i) => {
+    const sourceOutcomeId = String(o.id);
+    const canonicalId = `${logicalMarketId}-${i}`;
+    outcomeMap[sourceOutcomeId] = canonicalId;
+    return { id: canonicalId, label: o.title };
+  });
+  const venueOutcomes = m.outcomes.map((o) => ({
+    sourceOutcomeId: String(o.id),
+    label: o.title,
+  }));
+
+  await LogicalMarket.findByIdAndUpdate(
+    logicalMarketId,
+    {
+      $set: {
+        _id: logicalMarketId,
+        title: m.title,
+        category,
+        endDate: expires,
+        status,
+        quoteCurrency: 'USD',
+        outcomes: canonicalOutcomes,
+        venueMarkets: [
+          { venue: 'myriad', sourceMarketId, outcomeMap },
+        ],
+        eventId: logicalEventId,
+        eventTitle: m.title,
+        logicalEventId,
+        groupItemTitle: undefined,
+      },
+    },
+    { upsert: true },
+  );
+
+  const venueSet: Record<string, unknown> = {
+    venue: 'myriad',
+    sourceMarketId,
+    logicalMarketId,
+    title: m.title,
+    category,
+    endDate: expires,
+    status,
+    quoteCurrency: 'USD',
+    outcomes: venueOutcomes,
+    featured: m.featured ?? false,
+    volume: m.volumeNotional ?? m.volume ?? 0,
+    liquidity: m.liquidity ?? 0,
+    logicalEventId,
+    sourceEventId: sourceMarketId,
+    groupItemTitle: undefined,
+  };
+  if (m.imageUrl) venueSet['image'] = m.imageUrl;
+  if (m.description) venueSet['description'] = m.description;
+
+  await VenueMarket.findOneAndUpdate(
+    { venue: 'myriad', sourceMarketId },
+    { $set: venueSet },
+    { upsert: true },
+  );
+
+  await LogicalEvent.findByIdAndUpdate(
+    logicalEventId,
+    {
+      $set: {
+        _id: logicalEventId,
+        title: m.title,
+        slug: m.slug,
+        description: m.description,
+        image: m.imageUrl ?? undefined,
+        category,
+        endDate: expires,
+        status,
+        mutuallyExclusive: m.outcomes.length > 2,
+        childMarketIds: [logicalMarketId],
+        venues: ['myriad'],
+        volume24h: m.volumeNotional24h ?? m.volume24h ?? 0,
+        volume: m.volumeNotional ?? m.volume ?? 0,
+        liquidity: m.liquidity ?? 0,
+        featured: m.featured ?? false,
+      },
+    },
+    { upsert: true },
+  );
+
+  await VenueEvent.findOneAndUpdate(
+    { venue: 'myriad', sourceEventId: sourceMarketId },
+    {
+      $set: {
+        venue: 'myriad',
+        sourceEventId: sourceMarketId,
+        logicalEventId,
+        title: m.title,
+        slug: m.slug,
+        description: m.description,
+        image: m.imageUrl ?? undefined,
+        category,
+        endDate: expires,
+        status,
+        mutuallyExclusive: m.outcomes.length > 2,
+        childSourceMarketIds: [sourceMarketId],
+        volume24h: m.volumeNotional24h ?? m.volume24h ?? 0,
+        volume: m.volumeNotional ?? m.volume ?? 0,
+        liquidity: m.liquidity ?? 0,
+        featured: m.featured ?? false,
+      },
+    },
+    { upsert: true },
+  );
+
+  return true;
+}
+
+async function syncMyriad(): Promise<void> {
+  const markets = await fetchAllMyriadMarkets(
+    config.myriadMarketPageSize,
+    config.myriadMaxMarkets,
+  );
+  console.log(`[market-sync] fetched ${markets.length} markets from Myriad`);
+
+  let upserted = 0;
+  let skipped = 0;
+  for (const m of markets) {
+    const ok = await upsertMyriadMarket(m);
+    if (ok) upserted++;
+    else skipped++;
+  }
+  console.log(
+    `[market-sync] myriad: upserted ${upserted} markets, skipped ${skipped}`,
+  );
+}
+
 export async function runMarketSync(): Promise<void> {
   console.log('[market-sync] starting...');
-  const results = await Promise.allSettled([syncPolymarket(), syncKalshi()]);
+  const venues = ['polymarket', 'kalshi', 'myriad'] as const;
+  const results = await Promise.allSettled([
+    syncPolymarket(),
+    syncKalshi(),
+    syncMyriad(),
+  ]);
   results.forEach((r, i) => {
     if (r.status === 'rejected') {
-      const venue = i === 0 ? 'polymarket' : 'kalshi';
-      console.error(`[market-sync] ${venue} failed:`, (r.reason as Error)?.message ?? r.reason);
+      console.error(
+        `[market-sync] ${venues[i]} failed:`,
+        (r.reason as Error)?.message ?? r.reason,
+      );
     }
   });
 }

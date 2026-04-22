@@ -8,7 +8,8 @@
 # Usage:
 #   ./scripts/dev-all.sh                  # bring up mongo if needed, then run backend + frontend
 #   ./scripts/dev-all.sh --seed           # also seed fixtures before launching
-#   ./scripts/dev-all.sh --with-worker    # also run the worker locally (live Polymarket indexing)
+#   ./scripts/dev-all.sh --with-worker    # also run the worker locally (live Polymarket/Kalshi/Myriad indexing)
+#   ./scripts/dev-all.sh --with-mcp       # also run `tsc --watch` on mcp/ (keeps mcp/dist fresh)
 #   ./scripts/dev-all.sh --down           # stop everything (services + mongo container)
 
 set -euo pipefail
@@ -20,12 +21,14 @@ cd "${REPO_ROOT}"
 RUN_SEED=0
 DOWN=0
 WITH_WORKER=0
+WITH_MCP=0
 for arg in "$@"; do
   case "${arg}" in
     --seed) RUN_SEED=1 ;;
     --down) DOWN=1 ;;
     --with-worker) WITH_WORKER=1 ;;
-    -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --with-mcp) WITH_MCP=1 ;;
+    -h|--help) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown arg: ${arg}" >&2; exit 2 ;;
   esac
 done
@@ -40,10 +43,11 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 if [[ ${DOWN} -eq 1 ]]; then
-  step "stopping local backend/frontend/worker watchers"
+  step "stopping local backend/frontend/worker/mcp watchers"
   pkill -f "nest start --watch" 2>/dev/null || true
   pkill -f "node .*vite" 2>/dev/null || true
   pkill -f "tsx watch.*worker/src/main" 2>/dev/null || true
+  pkill -f "tsc -p tsconfig.json --watch" 2>/dev/null || true
   step "docker compose down (mongodb)"
   docker compose down
   ok "stack stopped"
@@ -106,4 +110,5 @@ step "handing off to dev.sh (backend watch + vite HMR)"
 DEV_ARGS=(--no-check)
 [[ ${RUN_SEED} -eq 1 ]] && DEV_ARGS+=(--seed)
 [[ ${WITH_WORKER} -eq 1 ]] && DEV_ARGS+=(--with-worker)
+[[ ${WITH_MCP} -eq 1 ]] && DEV_ARGS+=(--with-mcp)
 exec "${SCRIPT_DIR}/dev.sh" "${DEV_ARGS[@]}"
