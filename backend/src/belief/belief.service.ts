@@ -24,11 +24,14 @@ import {
   LOGICAL_MARKET_MODEL,
   ORDERBOOK_SNAPSHOT_MODEL,
 } from "../mongo/schemas.js";
-import { EmbeddingService } from "./embedding.service.js";
 import {
-  MARKET_CONCEPT_TEXTS,
-  OUTCOME_CONCEPT_TEXTS,
-} from "./fixtures/market-concepts.js";
+  buildSearchableMarketText,
+  buildSearchableOutcomeText,
+} from "./belief-text.js";
+import { EmbeddingService } from "./embedding.service.js";
+
+/** Parallel `encode` calls to avoid stalling the event loop; tune if needed. */
+const EMBED_CONCURRENCY = 6;
 
 interface LogicalMarketDoc {
   _id: string;
@@ -37,6 +40,8 @@ interface LogicalMarketDoc {
   endDate: Date;
   status: MarketStatus;
   quoteCurrency: "USD";
+  eventTitle?: string;
+  groupItemTitle?: string;
   outcomes: Array<{ id: string; label: string }>;
   venueMarkets: Array<{ venue: string; sourceMarketId: string }>;
 }
@@ -76,45 +81,77 @@ export class BeliefService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    // Build market + outcome vectors after the embedding model finishes loading.
     this.vectorsReady = this.buildVectors();
   }
 
+  private async runWithConcurrencyLimit(
+    tasks: Array<() => Promise<void>>,
+    limit: number,
+  ): Promise<void> {
+    if (tasks.length === 0) return;
+    let i = 0;
+    const worker = async () => {
+      for (;;) {
+        const idx = i < tasks.length ? i++ : -1;
+        if (idx < 0) return;
+        await tasks[idx]!();
+      }
+    };
+    const n = Math.min(limit, tasks.length);
+    await Promise.all(Array.from({ length: n }, () => worker()));
+  }
+
+  private async ensureMarketVector(market: LogicalMarketDoc): Promise<number[]> {
+    let v = this.marketVectors.get(market._id);
+    if (!v) {
+      v = await this.embedding.encode(
+        buildSearchableMarketText(market),
+      );
+      this.marketVectors.set(market._id, v);
+    }
+    return v;
+  }
+
+  private async ensureOutcomeVector(
+    market: LogicalMarketDoc,
+    outcome: { id: string; label: string },
+  ): Promise<number[]> {
+    const key = outcomeKey(market._id, outcome.id);
+    let v = this.outcomeVectors.get(key);
+    if (!v) {
+      v = await this.embedding.encode(
+        buildSearchableOutcomeText(market, outcome),
+      );
+      this.outcomeVectors.set(key, v);
+    }
+    return v;
+  }
+
   private async buildVectors(): Promise<void> {
-    this.logger.log("Pre-computing market + outcome embeddings…");
+    this.logger.log("Pre-computing market + outcome embeddings from open markets…");
 
-    const marketTasks = Object.entries(MARKET_CONCEPT_TEXTS).map(
-      async ([marketId, text]) => {
-        const vec = await this.embedding.encode(text);
-        this.marketVectors.set(marketId, vec);
-      },
-    );
+    const openMarkets = await this.logicalMarketModel
+      .find({ status: "open" })
+      .lean<LogicalMarketDoc[]>()
+      .exec();
 
-    const logicalMarkets = await this.matcher.getLogicalMarkets();
-    const outcomeTasks: Array<Promise<void>> = [];
-    for (const market of logicalMarkets) {
-      const marketConcept = MARKET_CONCEPT_TEXTS[market.id];
-      if (!marketConcept) continue;
-      const overrides = OUTCOME_CONCEPT_TEXTS[market.id] ?? {};
-      for (const outcome of market.outcomes) {
-        const text =
-          overrides[outcome.id] ?? `${marketConcept} ${outcome.label}`;
-        outcomeTasks.push(
-          this.embedding.encode(text).then((vec) => {
-            this.outcomeVectors.set(outcomeKey(market.id, outcome.id), vec);
-          }),
+    const tasks: Array<() => Promise<void>> = [];
+    for (const m of openMarkets) {
+      tasks.push(() => this.ensureMarketVector(m).then(() => undefined));
+      for (const o of m.outcomes) {
+        tasks.push(() =>
+          this.ensureOutcomeVector(m, o).then(() => undefined),
         );
       }
     }
 
-    await Promise.all([...marketTasks, ...outcomeTasks]);
+    await this.runWithConcurrencyLimit(tasks, EMBED_CONCURRENCY);
     this.logger.log(
-      `Embeddings ready (${this.marketVectors.size} markets, ${this.outcomeVectors.size} outcomes).`,
+      `Embeddings ready (${this.marketVectors.size} markets, ${this.outcomeVectors.size} outcomes) from ${openMarkets.length} open logical markets.`,
     );
   }
 
   async search(req: BeliefSearchRequest): Promise<BeliefSearchResponse> {
-    // Ensure market vectors (and the model) are ready before searching.
     await this.vectorsReady;
 
     const limit = req.limit ?? 5;
@@ -128,10 +165,9 @@ export class BeliefService implements OnModuleInit {
 
     const scored: Array<{ marketId: string; score: number }> = [];
     for (const market of markets) {
-      const vec = this.marketVectors.get(market._id);
-      if (!vec) continue;
+      const vec = await this.ensureMarketVector(market);
       const score = this.embedding.cosineSimilarity(queryVec, vec);
-      if (score > 0 && score >= minScore) {
+      if (score >= minScore) {
         scored.push({ marketId: market._id, score });
       }
     }
@@ -161,15 +197,13 @@ export class BeliefService implements OnModuleInit {
       .lean<LogicalMarketDoc[]>()
       .exec();
 
-    // Score every (market, outcome) and keep the best-scoring outcome per market.
     const bestOutcomePerMarket = new Map<
       string,
       { outcomeId: string; outcomeLabel: string; score: number }
     >();
     for (const market of markets) {
       for (const outcome of market.outcomes) {
-        const vec = this.outcomeVectors.get(outcomeKey(market._id, outcome.id));
-        if (!vec) continue;
+        const vec = await this.ensureOutcomeVector(market, outcome);
         const score = this.embedding.cosineSimilarity(queryVec, vec);
         if (score < minScore) continue;
         const current = bestOutcomePerMarket.get(market._id);
@@ -252,12 +286,10 @@ export class BeliefService implements OnModuleInit {
       }
     }
 
-    const perVenueLevels = [...perVenueByVenue.entries()].map(
-      ([venue, levels]) => ({ venue, levels }),
-    );
-
     return buildBudgetQuote({
-      perVenueLevels,
+      perVenueLevels: [...perVenueByVenue.entries()].map(
+        ([venue, levels]) => ({ venue, levels }),
+      ),
       budgetUsd,
       feeConfig: VENUE_FEES,
     });
@@ -344,3 +376,4 @@ export class BeliefService implements OnModuleInit {
     };
   }
 }
+
