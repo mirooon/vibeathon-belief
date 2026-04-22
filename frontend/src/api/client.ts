@@ -1,4 +1,5 @@
 import {
+  BeliefRouteResponseSchema,
   BeliefSearchResponseSchema,
   EventDetailSchema,
   EventListResponseSchema,
@@ -6,6 +7,8 @@ import {
   MarketDetailSchema,
   MarketListResponseSchema,
   QuoteResponseSchema,
+  type BeliefRouteRequestInput,
+  type BeliefRouteResponse,
   type BeliefSearchRequestInput,
   type BeliefSearchResponse,
   type EventDetail,
@@ -95,6 +98,14 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(req),
     }).then((r) => handle(r, (raw) => BeliefSearchResponseSchema.parse(raw)));
+  },
+
+  routeBelief(req: BeliefRouteRequestInput): Promise<BeliefRouteResponse> {
+    return fetch(`${API_URL}/belief/route`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+    }).then((r) => handle(r, (raw) => BeliefRouteResponseSchema.parse(raw)));
   },
 
   listEvents(filter?: EventsFilter): Promise<EventListResponse> {

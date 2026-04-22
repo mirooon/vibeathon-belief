@@ -43,8 +43,9 @@ export function buildSearchableMarketText(input: BeliefTextMarketInput): string 
 }
 
 /**
- * Per (market, outcome) string for /belief/route — must carry full market
- * context so generic labels (“Yes” / “No”) remain distinguishable.
+ * Per (market, outcome) string — retained for non-binary outcomes where
+ * /belief/route falls back to per-outcome embedding scoring. Binary Yes/No
+ * markets use a polarity heuristic in belief.service and do not rely on this.
  */
 export function buildSearchableOutcomeText(
   market: BeliefTextMarketInput,

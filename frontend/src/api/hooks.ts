@@ -11,6 +11,21 @@ export function useBeliefSearch(belief: string) {
   });
 }
 
+export function useBeliefRoute(
+  belief: string,
+  budgetUsd: number,
+  side?: "yes" | "no",
+) {
+  const trimmed = belief.trim();
+  return useQuery({
+    queryKey: ["belief-route", trimmed, budgetUsd, side ?? "auto"],
+    queryFn: () =>
+      api.routeBelief({ belief: trimmed, budgetUsd, limit: 3, side }),
+    enabled: trimmed.length >= 3 && budgetUsd > 0,
+    staleTime: 15_000,
+  });
+}
+
 export function useHealth() {
   return useQuery({
     queryKey: ["health"],

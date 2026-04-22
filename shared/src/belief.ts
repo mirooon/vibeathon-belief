@@ -33,8 +33,14 @@ export const BeliefRouteRequestSchema = z.object({
   budgetUsd: z.number().positive().max(1_000_000),
   limit: z.number().int().min(1).max(10).optional().default(3),
   minScore: z.number().min(0).max(1).optional().default(0.3),
+  /**
+   * Override the outcome side for binary Yes/No markets. When omitted the
+   * service auto-detects polarity from negation keywords in the belief text.
+   */
+  side: z.enum(["yes", "no"]).optional(),
 });
 export type BeliefRouteRequest = z.infer<typeof BeliefRouteRequestSchema>;
+export type BeliefRouteRequestInput = z.input<typeof BeliefRouteRequestSchema>;
 
 /**
  * One venue's allocation within a budget-sized route.

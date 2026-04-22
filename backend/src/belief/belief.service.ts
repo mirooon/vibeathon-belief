@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import type {
   BeliefMatch,
@@ -16,10 +16,6 @@ import type {
 import type { Model } from "mongoose";
 import { buildBudgetQuote } from "../aggregation/quote-engine.js";
 import { VENUE_FEES } from "../config/venue-fees.js";
-import {
-  MARKET_MATCHER,
-  type MarketMatcher,
-} from "../matching/market-matcher.interface.js";
 import {
   LOGICAL_MARKET_MODEL,
   ORDERBOOK_SNAPSHOT_MODEL,
@@ -63,6 +59,21 @@ function outcomeKey(marketId: string, outcomeId: string): string {
   return `${marketId}:${outcomeId}`;
 }
 
+/**
+ * Detects explicit negation in a belief so we can route it to the "No" side
+ * of a binary market. Catches common forms: "not", "won't", "will not",
+ * "never", contracted forms with curly apostrophes. Not exhaustive — indirect
+ * negation like "I doubt that X" is not detected.
+ */
+export function isNegativeBelief(text: string): boolean {
+  const normalized = text
+    .toLowerCase()
+    .replace(/[‘’ʼ]/g, "'");
+  return /\b(not|never|won't|wont|can't|cant|cannot|doesn't|doesnt|don't|dont|isn't|isnt|ain't|aint|shouldn't|shouldnt|wouldn't|wouldnt)\b/.test(
+    normalized,
+  );
+}
+
 @Injectable()
 export class BeliefService implements OnModuleInit {
   private readonly logger = new Logger(BeliefService.name);
@@ -76,8 +87,6 @@ export class BeliefService implements OnModuleInit {
     private readonly logicalMarketModel: Model<LogicalMarketDoc>,
     @InjectModel(ORDERBOOK_SNAPSHOT_MODEL)
     private readonly snapshotModel: Model<SnapshotDoc>,
-    @Inject(MARKET_MATCHER)
-    private readonly matcher: MarketMatcher,
   ) {}
 
   onModuleInit(): void {
@@ -191,53 +200,58 @@ export class BeliefService implements OnModuleInit {
     const limit = req.limit ?? 3;
     const minScore = req.minScore ?? 0.3;
     const queryVec = await this.embedding.encode(req.belief);
+    const beliefIsNegative =
+      req.side === "no" ||
+      (req.side === undefined && isNegativeBelief(req.belief));
 
     const markets = await this.logicalMarketModel
       .find({ status: "open" })
       .lean<LogicalMarketDoc[]>()
       .exec();
 
-    const bestOutcomePerMarket = new Map<
-      string,
-      { outcomeId: string; outcomeLabel: string; score: number }
-    >();
+    // Score at the MARKET level (not per-outcome). MiniLM poorly discriminates
+    // the single-token difference between "Outcome: Yes" and "Outcome: No"; the
+    // polarity of the belief is instead resolved by keyword heuristic below.
+    const scored: Array<{ market: LogicalMarketDoc; score: number }> = [];
     for (const market of markets) {
-      for (const outcome of market.outcomes) {
-        const vec = await this.ensureOutcomeVector(market, outcome);
-        const score = this.embedding.cosineSimilarity(queryVec, vec);
-        if (score < minScore) continue;
-        const current = bestOutcomePerMarket.get(market._id);
-        if (!current || score > current.score) {
-          bestOutcomePerMarket.set(market._id, {
-            outcomeId: outcome.id,
-            outcomeLabel: outcome.label,
-            score,
-          });
-        }
-      }
+      const vec = await this.ensureMarketVector(market);
+      const score = this.embedding.cosineSimilarity(queryVec, vec);
+      if (score >= minScore) scored.push({ market, score });
     }
+    scored.sort((a, b) => b.score - a.score);
 
-    const ranked = [...bestOutcomePerMarket.entries()]
-      .map(([marketId, best]) => ({ marketId, ...best }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
-
+    // Walk ranked markets, pick the outcome by polarity, drop markets whose
+    // orderbook can't absorb any of the budget, and stop at `limit` filled
+    // matches. Bounded by MAX_ROUTE_CANDIDATES to cap DB load.
+    const MAX_ROUTE_CANDIDATES = Math.max(limit * 8, 24);
     const matches: BeliefRouteMatch[] = [];
-    for (const pick of ranked) {
-      const market = markets.find((m) => m._id === pick.marketId);
-      if (!market) continue;
-      const listItem = await this.buildMarketListItem(market);
+    let evaluated = 0;
+    for (const { market, score } of scored) {
+      if (matches.length >= limit) break;
+      if (evaluated >= MAX_ROUTE_CANDIDATES) break;
+      evaluated++;
+
+      const outcome = await this.pickOutcomeForBelief(
+        market,
+        queryVec,
+        beliefIsNegative,
+      );
+      if (!outcome) continue;
+
       const route = await this.buildBudgetRoute(
-        pick.marketId,
-        pick.outcomeId,
+        market._id,
+        outcome.id,
         req.budgetUsd,
       );
+      if (route.filledSizeShares <= 0) continue;
+
+      const listItem = await this.buildMarketListItem(market);
       matches.push({
-        score: Math.round(pick.score * 1000) / 1000,
+        score: Math.round(score * 1000) / 1000,
         market: listItem,
         outcome: {
-          outcomeId: pick.outcomeId,
-          outcomeLabel: pick.outcomeLabel,
+          outcomeId: outcome.id,
+          outcomeLabel: outcome.label,
         },
         route,
       });
@@ -246,44 +260,59 @@ export class BeliefService implements OnModuleInit {
     return { belief: req.belief, budgetUsd: req.budgetUsd, matches };
   }
 
+  /**
+   * Binary Yes/No markets: pick by explicit negation in the belief text
+   * (heuristic — much more reliable than MiniLM's weak polarity signal).
+   * Non-binary markets: fall back to per-outcome embedding similarity.
+   */
+  private async pickOutcomeForBelief(
+    market: LogicalMarketDoc,
+    queryVec: number[],
+    beliefIsNegative: boolean,
+  ): Promise<{ id: string; label: string } | null> {
+    const yes = market.outcomes.find((o) => /^y(es)?$/i.test(o.label));
+    const no = market.outcomes.find((o) => /^no?$/i.test(o.label));
+    if (yes && no) {
+      return beliefIsNegative ? no : yes;
+    }
+    let best: { outcome: { id: string; label: string }; score: number } | null =
+      null;
+    for (const outcome of market.outcomes) {
+      const vec = await this.ensureOutcomeVector(market, outcome);
+      const score = this.embedding.cosineSimilarity(queryVec, vec);
+      if (!best || score > best.score) best = { outcome, score };
+    }
+    return best?.outcome ?? null;
+  }
+
   private async buildBudgetRoute(
     logicalMarketId: string,
     outcomeId: string,
     budgetUsd: number,
   ): Promise<BudgetRoute> {
-    const venueOutcomes = await this.matcher.findVenueOutcomes(
-      logicalMarketId,
-      outcomeId,
-    );
+    // Read the latest snapshot per venue keyed by logicalMarketId.
+    // Works for both seeded (multi-venue) and worker-ingested (venue-scoped)
+    // markets — the matcher is not consulted because ingested markets have no
+    // static matcher entry.
+    const snaps = await this.snapshotModel
+      .find({ logicalMarketId })
+      .sort({ timestamp: -1 })
+      .lean<SnapshotDoc[]>()
+      .exec();
+
+    const latestByVenue = new Map<Venue, SnapshotDoc>();
+    for (const snap of snaps) {
+      const v = snap.venue as Venue;
+      if (!latestByVenue.has(v)) latestByVenue.set(v, snap);
+    }
 
     const perVenueByVenue = new Map<Venue, OrderBookLevel[]>();
-    for (const ref of venueOutcomes) {
-      try {
-        const snap = await this.snapshotModel
-          .findOne({
-            venue: ref.venue,
-            sourceMarketId: ref.sourceMarketId,
-          })
-          .sort({ timestamp: -1 })
-          .lean<SnapshotDoc | null>()
-          .exec();
-        const outcomeBook = snap?.outcomes.find(
-          (o) =>
-            o.sourceOutcomeId === ref.sourceOutcomeId ||
-            o.canonicalOutcomeId === outcomeId,
-        );
-        const asks: OrderBookLevel[] = outcomeBook?.asks ?? [];
-        const existing = perVenueByVenue.get(ref.venue) ?? [];
-        existing.push(...asks);
-        perVenueByVenue.set(ref.venue, existing);
-      } catch (err) {
-        this.logger.warn(
-          `snapshot read failed for ${ref.venue}/${ref.sourceMarketId}: ${String(err)}`,
-        );
-        if (!perVenueByVenue.has(ref.venue)) {
-          perVenueByVenue.set(ref.venue, []);
-        }
-      }
+    for (const [venue, snap] of latestByVenue) {
+      const book = snap.outcomes.find(
+        (o) => o.canonicalOutcomeId === outcomeId,
+      );
+      const asks: OrderBookLevel[] = book?.asks ?? [];
+      if (asks.length > 0) perVenueByVenue.set(venue, asks);
     }
 
     return buildBudgetQuote({

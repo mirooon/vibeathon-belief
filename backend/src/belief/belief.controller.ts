@@ -127,6 +127,12 @@ export class BeliefController {
           description:
             "Cosine-similarity floor. Matches below this are dropped — so `limit` becomes a cap, not a quota.",
         },
+        side: {
+          type: "string",
+          enum: ["yes", "no"],
+          description:
+            "Force the outcome side for binary Yes/No markets. Omit to auto-detect polarity from negation keywords in the belief text.",
+        },
       },
     },
   })
@@ -187,13 +193,20 @@ export class BeliefController {
   @ApiResponse({ status: 422, description: "Validation error — belief or budget is invalid." })
   route(
     @Body(new ZodValidationPipe(BeliefRouteRequestSchema))
-    req: { belief: string; budgetUsd: number; limit?: number; minScore?: number },
+    req: {
+      belief: string;
+      budgetUsd: number;
+      limit?: number;
+      minScore?: number;
+      side?: "yes" | "no";
+    },
   ) {
     return this.beliefService.route({
       belief: req.belief,
       budgetUsd: req.budgetUsd,
       limit: req.limit ?? 3,
       minScore: req.minScore ?? 0.3,
+      side: req.side,
     });
   }
 }

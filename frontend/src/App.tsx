@@ -1,6 +1,7 @@
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { useHealth } from "./api/hooks.js";
 import { Belief } from "./pages/Belief.js";
+import { BeliefBet } from "./pages/BeliefBet.js";
 import { Event } from "./pages/Event.js";
 import { Events } from "./pages/Events.js";
 import { Market } from "./pages/Market.js";
@@ -58,6 +59,7 @@ export function App() {
   const location = useLocation();
   const isEvents = location.pathname === "/";
   const isBelief = location.pathname === "/belief";
+  const isBet = location.pathname === "/bet";
 
   return (
     <>
@@ -101,6 +103,19 @@ export function App() {
           >
             ✨ belief
           </Link>
+          <Link to="/bet" style={{ textDecoration: "none" }}>
+            <span
+              className="nav-badge"
+              style={{
+                cursor: "pointer",
+                transition: "opacity var(--dur-fast) var(--ease-standard)",
+                opacity: isBet ? 1 : 0.75,
+                background: isBet ? "rgba(247,194,255,0.14)" : undefined,
+              }}
+            >
+              bet
+            </span>
+          </Link>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -134,6 +149,7 @@ export function App() {
           <Route path="/events/:id" element={<Event />} />
           <Route path="/markets/:id" element={<Market />} />
           <Route path="/belief" element={<Belief />} />
+          <Route path="/bet" element={<BeliefBet />} />
         </Routes>
       </main>
     </>
