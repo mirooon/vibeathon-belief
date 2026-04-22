@@ -4,7 +4,6 @@ import { Belief } from "./pages/Belief.js";
 import { Event } from "./pages/Event.js";
 import { Events } from "./pages/Events.js";
 import { Market } from "./pages/Market.js";
-import { Markets } from "./pages/Markets.js";
 import logoSrc from "./assets/logo_lifi_dark_horizontal.svg";
 
 const API_URL: string =
@@ -58,7 +57,6 @@ function HealthDot() {
 export function App() {
   const location = useLocation();
   const isEvents = location.pathname === "/";
-  const isMarkets = location.pathname === "/markets";
   const isBelief = location.pathname === "/belief";
 
   return (
@@ -71,7 +69,6 @@ export function App() {
           <span className="nav-divider" />
           <div className="nav-links">
             <Link to="/" className={`nav-link ${isEvents ? "active" : ""}`}>Events</Link>
-            <Link to="/markets" className={`nav-link ${isMarkets ? "active" : ""}`}>Markets</Link>
           </div>
           <Link to="/belief" style={{ textDecoration: "none" }}>
             <span
@@ -117,7 +114,6 @@ export function App() {
         <Routes>
           <Route path="/" element={<Events />} />
           <Route path="/events/:id" element={<Event />} />
-          <Route path="/markets" element={<Markets />} />
           <Route path="/markets/:id" element={<Market />} />
           <Route path="/belief" element={<Belief />} />
         </Routes>
