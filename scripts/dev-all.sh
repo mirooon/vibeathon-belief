@@ -8,7 +8,7 @@
 # Usage:
 #   ./scripts/dev-all.sh                  # bring up mongo if needed, then run backend + frontend
 #   ./scripts/dev-all.sh --seed           # also seed fixtures before launching
-#   ./scripts/dev-all.sh --with-worker    # also run the worker locally (live Polymarket indexing)
+#   ./scripts/dev-all.sh --with-worker    # also run the worker locally (live Polymarket/Kalshi/Myriad indexing)
 #   ./scripts/dev-all.sh --with-mcp       # also run `tsc --watch` on mcp/ (keeps mcp/dist fresh)
 #   ./scripts/dev-all.sh --down           # stop everything (services + mongo container)
 

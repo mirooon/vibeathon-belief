@@ -108,7 +108,7 @@ step "starting $(IFS=' + '; echo "${PROCS[*]}")"
 info "backend  → http://localhost:3000/api/v1  (Swagger: /docs)"
 info "frontend → http://localhost:5173"
 if [[ ${WITH_WORKER} -eq 1 ]]; then
-  info "worker   → live Polymarket sync (no HTTP port)"
+  info "worker   → live Polymarket/Kalshi/Myriad sync (no HTTP port)"
 fi
 if [[ ${WITH_MCP} -eq 1 ]]; then
   info "mcp      → keeps mcp/dist fresh (MCP clients launch node mcp/dist/main.js on demand)"

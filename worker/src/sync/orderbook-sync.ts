@@ -2,6 +2,10 @@ import {
   fetchOrderBook as fetchKalshiOrderBook,
   type KalshiOrderBook,
 } from '../adapters/kalshi.client';
+import {
+  fetchQuote as fetchMyriadQuote,
+  parseSourceMarketId,
+} from '../adapters/myriad.client';
 import { fetchOrderBook } from '../adapters/polymarket.client';
 import { config } from '../config';
 import { getOrderBookSnapshotModel, getVenueMarketModel } from '../schemas';
@@ -153,17 +157,149 @@ async function syncKalshiOrderbooks(): Promise<void> {
   console.log(`[orderbook-sync] kalshi inserted ${count} snapshots`);
 }
 
+/**
+ * Convert a series of AMM quotes at ascending notionals into order-book levels.
+ * Each quote reports cumulative shares for a cumulative notional; the tranche
+ * between consecutive quotes is a single level whose price is its marginal
+ * average (Δvalue / Δshares) and whose size is Δshares.
+ *
+ * Quotes that didn't return usable numbers are skipped; monotonically
+ * non-increasing share steps (AMM depth exhausted) end the series early.
+ */
+function synthLevelsFromQuotes(
+  quotes: Array<{ value: number; shares: number } | null>,
+): Level[] {
+  const levels: Level[] = [];
+  let prevValue = 0;
+  let prevShares = 0;
+  for (const q of quotes) {
+    if (!q || !Number.isFinite(q.value) || !Number.isFinite(q.shares)) continue;
+    const dv = q.value - prevValue;
+    const ds = q.shares - prevShares;
+    if (dv <= 0 || ds <= 0) break;
+    levels.push({ price: dv / ds, size: ds });
+    prevValue = q.value;
+    prevShares = q.shares;
+  }
+  return levels;
+}
+
+async function sampleMyriadSide(
+  marketId: number,
+  networkId: number,
+  outcomeId: number,
+  action: 'buy' | 'sell',
+  notionals: readonly number[],
+): Promise<Array<{ value: number; shares: number } | null>> {
+  const out: Array<{ value: number; shares: number } | null> = [];
+  for (const value of notionals) {
+    try {
+      const q = await fetchMyriadQuote({
+        marketId,
+        networkId,
+        outcomeId,
+        action,
+        value,
+      });
+      out.push({ value, shares: q.shares });
+    } catch {
+      out.push(null);
+    }
+  }
+  return out;
+}
+
+async function syncMyriadOrderbooks(): Promise<void> {
+  const VenueMarket = getVenueMarketModel();
+  const markets = (await VenueMarket.find(
+    { venue: 'myriad', status: 'open' },
+    { sourceMarketId: 1, logicalMarketId: 1, outcomes: 1, volume: 1 },
+  )
+    .sort({ volume: -1 })
+    .limit(config.myriadOrderbookMaxMarkets)
+    .lean()) as unknown as VenueMarketLean[];
+
+  console.log(`[orderbook-sync] myriad: processing ${markets.length} markets`);
+
+  const OrderBookSnapshot = getOrderBookSnapshotModel();
+  const timestamp = new Date();
+  let count = 0;
+
+  for (const vm of markets) {
+    const parsed = parseSourceMarketId(vm.sourceMarketId);
+    if (!parsed) continue;
+
+    try {
+      const outcomeBooks = [];
+      for (let i = 0; i < (vm.outcomes?.length ?? 0); i++) {
+        const nativeOutcome = vm.outcomes![i]!;
+        const outcomeIdNum = Number(nativeOutcome.sourceOutcomeId);
+        if (!Number.isFinite(outcomeIdNum)) continue;
+
+        const [buyQuotes, sellQuotes] = await Promise.all([
+          sampleMyriadSide(
+            parsed.id,
+            parsed.networkId,
+            outcomeIdNum,
+            'buy',
+            config.myriadQuoteNotionals,
+          ),
+          sampleMyriadSide(
+            parsed.id,
+            parsed.networkId,
+            outcomeIdNum,
+            'sell',
+            config.myriadQuoteNotionals,
+          ),
+        ]);
+
+        const asks = synthLevelsFromQuotes(buyQuotes).sort(
+          (a, b) => a.price - b.price,
+        );
+        const bids = synthLevelsFromQuotes(sellQuotes).sort(
+          (a, b) => b.price - a.price,
+        );
+
+        outcomeBooks.push({
+          sourceOutcomeId: nativeOutcome.sourceOutcomeId,
+          canonicalOutcomeId: `${vm.logicalMarketId}-${i}`,
+          bids,
+          asks,
+        });
+      }
+
+      if (!outcomeBooks.length) continue;
+      await OrderBookSnapshot.create({
+        venue: 'myriad',
+        sourceMarketId: vm.sourceMarketId,
+        logicalMarketId: vm.logicalMarketId,
+        timestamp,
+        outcomes: outcomeBooks,
+      });
+      count++;
+    } catch (err) {
+      console.error(
+        `[orderbook-sync] myriad failed market ${vm.sourceMarketId}:`,
+        (err as Error).message,
+      );
+    }
+  }
+
+  console.log(`[orderbook-sync] myriad inserted ${count} snapshots`);
+}
+
 export async function runOrderbookSync(): Promise<void> {
   console.log('[orderbook-sync] starting...');
+  const venues = ['polymarket', 'kalshi', 'myriad'] as const;
   const results = await Promise.allSettled([
     syncPolymarketOrderbooks(),
     syncKalshiOrderbooks(),
+    syncMyriadOrderbooks(),
   ]);
   results.forEach((r, i) => {
     if (r.status === 'rejected') {
-      const venue = i === 0 ? 'polymarket' : 'kalshi';
       console.error(
-        `[orderbook-sync] ${venue} failed:`,
+        `[orderbook-sync] ${venues[i]} failed:`,
         (r.reason as Error)?.message ?? r.reason,
       );
     }

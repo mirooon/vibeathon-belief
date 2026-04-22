@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Vibeahack — full dev launcher (backend + frontend + worker + mcp build-watch).
-# Same as dev-all.sh but adds the worker (live Polymarket indexing) and keeps
-# mcp/dist compiled so any MCP client pointed at mcp/dist/main.js stays fresh.
+# Same as dev-all.sh but adds the worker (live Polymarket/Kalshi/Myriad indexing)
+# and keeps mcp/dist compiled so any MCP client pointed at mcp/dist/main.js stays fresh.
 # Mongo runs in docker; backend, frontend, worker run locally with watchers.
 #
 # Usage:
