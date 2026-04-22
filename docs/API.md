@@ -1,17 +1,16 @@
-# Vibeahack API — Phase 1
+# Belief API
 
-> Phase 1 is **mocked**. All responses derive from fixtures seeded into MongoDB.
 > Swagger UI: `http://localhost:3000/api/v1/docs`
 > OpenAPI JSON: `http://localhost:3000/api/v1/docs-json`
 
 ## Global conventions
 
-- **Base URL:** `http://localhost:3000/api/v1`.
+- **Base URL:** `http://localhost:3000/api/v1`
 - **Prices** are 0–1 decimal probabilities (e.g. `0.5142`), not percentages. Kalshi's native cents are converted at the adapter boundary.
 - **Size** is in shares / contracts, not USD notional. USD cost of a fill = `size × avgPrice`.
-- **Currency:** Phase 1 treats USDC, USD, and any stable fiat as a single unit `"USD"`. Every market carries `quoteCurrency: "USD"`.
+- **Currency:** All venues are normalised to a single unit `"USD"`. Every market carries `quoteCurrency: "USD"`.
 - **Rounding:** `blendedPrice` and `avgPrice` are rounded to **4 decimals**. `fees` and `totalFees` to **2 decimals** (cents). `estimatedSlippageBps` is an integer ≥ 0.
-- **Auth:** none in Phase 1.
+- **Auth:** none.
 - **Error envelope** (shared across all 4xx/5xx responses):
   ```json
   {
@@ -80,7 +79,7 @@ curl http://localhost:3000/api/v1/health
       bestAsk: number | null       // lowest ask across venues, 0–1, null if no depth
     }>
   }>,
-  cursor: string | null            // Phase 1 always null; present for API stability
+  cursor: string | null
 }
 ```
 **Error responses.** None specific; 500 on upstream failure.
@@ -88,7 +87,7 @@ curl http://localhost:3000/api/v1/health
 ```bash
 curl 'http://localhost:3000/api/v1/markets?status=open'
 ```
-**Notes.** Sort order is by `endDate` ascending. Phase 1 returns all matching items in a single page.
+**Notes.** Sort order is by `endDate` ascending. Markets are populated by the indexer worker; the list reflects the current live state from all venues.
 
 ---
 
@@ -97,7 +96,7 @@ curl 'http://localhost:3000/api/v1/markets?status=open'
 **Summary.** Full detail for one logical market — aggregated best prices, per-venue breakdown, per-outcome price history.
 **Auth.** None.
 **Path params.**
-- `id` (string, required) — canonical logical market id (e.g. `fifa-2026-winner`).
+- `id` (string, required) — canonical logical market id.
 
 **Query params.**
 - `from` (ISO-8601, optional) — filter price history points with `timestamp >= from`.
@@ -144,9 +143,9 @@ curl 'http://localhost:3000/api/v1/markets?status=open'
 - `404 MARKET_NOT_FOUND` — `id` is unknown.
 **Example request.**
 ```bash
-curl 'http://localhost:3000/api/v1/markets/fifa-2026-winner'
+curl 'http://localhost:3000/api/v1/markets/polymarket-abc123'
 ```
-**Notes.** For a Kalshi binary market that implements a multi-outcome event (e.g. FIFA Winner), Kalshi appears in `venueBreakdown` **once per binary** (one entry per candidate). `aggregatedBestPrices.bestAsk` is the minimum ask across all venues that have depth; `bestBid` is the maximum bid.
+**Notes.** `aggregatedBestPrices.bestAsk` is the minimum ask across all venues with depth; `bestBid` is the maximum bid.
 
 ---
 
@@ -176,9 +175,9 @@ curl 'http://localhost:3000/api/v1/markets/fifa-2026-winner'
     isOptimal: boolean,
     splits: Array<{
       venue: "polymarket" | "kalshi" | "myriad",
-      size: number,                 // shares allocated to this venue (execution order)
-      avgPrice: number,             // weighted average fill price, 0–1, 4-decimal rounded
-      fees: number                  // USD, 2-decimal rounded
+      size: number,                 // shares allocated to this venue
+      avgPrice: number,             // weighted average fill price, 0–1, 4-decimal
+      fees: number                  // USD, 2-decimal
     }>,
     filledSize: number,             // sum of splits[].size
     unfilledSize: number,           // request.size − filledSize, ≥ 0
@@ -188,32 +187,31 @@ curl 'http://localhost:3000/api/v1/markets/fifa-2026-winner'
   }>
 }
 ```
-**Invariants enforced by the server (asserted in e2e tests):**
+**Invariants:**
 - `routes[0].id === "optimal"` and `routes[0].isOptimal === true`.
 - Exactly one route has `isOptimal: true`.
-- For every venue with any depth for this `(outcomeId, side)`, there is one `single:<venue>` route — even if it cannot fully fill (in which case `unfilledSize > 0`).
-- Single-venue routes are emitted in the order `polymarket, kalshi, myriad` (enum order), skipping venues with no depth.
-- `splits[]` is in **execution order** (first-filled first), not venue-enum order.
+- For every venue with depth for this `(outcomeId, side)`, there is one `single:<venue>` route — even if it cannot fully fill (`unfilledSize > 0`).
+- `splits[]` is in **execution order** (best price first).
 
 **Error responses.**
-- `400 INVALID_REQUEST` — missing / malformed body (e.g. `size <= 0`, unknown `side`).
+- `400 INVALID_REQUEST` — missing / malformed body (`size <= 0`, unknown `side`).
 - `404 MARKET_NOT_FOUND` — `id` is unknown.
-- `404 OUTCOME_NOT_FOUND` — `outcomeId` is not an outcome of the logical market.
-- `409 MARKET_NOT_OPEN` — the market's `status` is `closed` or `resolved`.
+- `404 OUTCOME_NOT_FOUND` — `outcomeId` is not an outcome of this market.
+- `409 MARKET_NOT_OPEN` — market `status` is `closed` or `resolved`.
 
-**Worked example (the §6a canonical case).**
+**Worked example.**
 
-Fixture state for `fifa-2026-winner`, outcome `france`, BUY side:
+Assume orderbook state for some market, outcome `france`, BUY side:
 
 | Venue | Top-of-book ask | Depth |
 |---|---|---|
 | Polymarket | 0.51 | 500 |
-| Kalshi (binary "Will France win?") | 0.535 | 400 |
+| Kalshi | 0.535 | 400 |
 | Myriad | 0.56 | 300 |
 
 Request:
 ```bash
-curl -X POST http://localhost:3000/api/v1/markets/fifa-2026-winner/quote \
+curl -X POST http://localhost:3000/api/v1/markets/<id>/quote \
   -H "Content-Type: application/json" \
   -d '{"outcomeId": "france", "side": "buy", "size": 600}'
 ```
@@ -221,7 +219,6 @@ curl -X POST http://localhost:3000/api/v1/markets/fifa-2026-winner/quote \
 Response (abridged):
 ```json
 {
-  "request": { "logicalMarketId": "fifa-2026-winner", "outcomeId": "france", "side": "buy", "size": 600 },
   "routes": [
     {
       "id": "optimal",
@@ -231,41 +228,60 @@ Response (abridged):
         { "venue": "kalshi", "size": 100, "avgPrice": 0.535, "fees": 1.07 }
       ],
       "filledSize": 600, "unfilledSize": 0,
-      "blendedPrice": 0.5142, "totalFees": 1.07,
-      "estimatedSlippageBps": 82
+      "blendedPrice": 0.5142, "totalFees": 1.07
     },
-    {
-      "id": "single:polymarket", "isOptimal": false,
-      "splits": [{ "venue": "polymarket", "size": 500, "avgPrice": 0.51, "fees": 0 }],
-      "filledSize": 500, "unfilledSize": 100,
-      "blendedPrice": 0.51, "totalFees": 0
-    },
-    {
-      "id": "single:kalshi", "isOptimal": false,
-      "splits": [{ "venue": "kalshi", "size": 400, "avgPrice": 0.535, "fees": 4.28 }],
-      "filledSize": 400, "unfilledSize": 200,
-      "blendedPrice": 0.535, "totalFees": 4.28
-    },
-    {
-      "id": "single:myriad", "isOptimal": false,
-      "splits": [{ "venue": "myriad", "size": 300, "avgPrice": 0.56, "fees": 1.68 }],
-      "filledSize": 300, "unfilledSize": 300,
-      "blendedPrice": 0.56, "totalFees": 1.68
-    }
+    { "id": "single:polymarket", "filledSize": 500, "unfilledSize": 100, ... },
+    { "id": "single:kalshi",     "filledSize": 400, "unfilledSize": 200, ... },
+    { "id": "single:myriad",     "filledSize": 300, "unfilledSize": 300, ... }
   ]
 }
 ```
 
-Blended-price derivation for `optimal`:
-`(500 × 0.51 + 100 × 0.535) / 600 = 308.5 / 600 ≈ 0.51417 → rounded 0.5142`.
+Blended-price derivation: `(500 × 0.51 + 100 × 0.535) / 600 ≈ 0.5142`.
 
 **Fees.** Per-venue static config:
 - Polymarket: 0 bps
 - Kalshi: 200 bps (2%)
 - Myriad: 100 bps (1%)
 
-Fee formula: `notional × takerBps / 10_000`, where `notional = size × avgPrice` (USD).
+Fee formula: `notional × takerBps / 10_000`, where `notional = size × avgPrice`.
 
 ---
 
-**Last updated:** 2026-04-21
+### POST /api/v1/belief/search
+
+**Summary.** Semantic search — find markets that match a natural-language belief statement.
+**Auth.** None.
+**Path params.** None.
+**Query params.** None.
+**Request body.**
+```ts
+{
+  query: string    // plain-English belief, e.g. "France wins the 2026 World Cup"
+}
+```
+**Response 200.**
+```ts
+{
+  results: Array<{
+    id: string,
+    title: string,
+    category: string,
+    endDate: string,
+    status: "open" | "closed" | "resolved",
+    venues: Array<"polymarket" | "kalshi" | "myriad">,
+    score: number    // cosine similarity, 0–1; higher = more relevant
+  }>
+}
+```
+**Example.**
+```bash
+curl -X POST http://localhost:3000/api/v1/belief/search \
+  -H "Content-Type: application/json" \
+  -d '{"query":"Fed cuts rates in June"}' | jq .
+```
+**Notes.** Embeddings are computed in-process via `@xenova/transformers` (no external API). The model downloads on first use. Results are ranked by cosine similarity; unrelated markets are excluded.
+
+---
+
+**Last updated:** 2026-04-22

@@ -73,18 +73,36 @@ export function App() {
             <Link to="/" className={`nav-link ${isEvents ? "active" : ""}`}>Events</Link>
             <Link to="/markets" className={`nav-link ${isMarkets ? "active" : ""}`}>Markets</Link>
           </div>
-          <Link to="/belief" style={{ textDecoration: "none" }}>
-            <span
-              className="nav-badge"
-              style={{
-                cursor: "pointer",
-                transition: "opacity var(--dur-fast) var(--ease-standard)",
-                opacity: isBelief ? 1 : 0.75,
-                background: isBelief ? "rgba(247,194,255,0.14)" : undefined,
-              }}
-            >
-              belief
-            </span>
+          <Link
+            to="/belief"
+            style={{
+              textDecoration: "none",
+              display: "inline-flex", alignItems: "center", gap: 6,
+              fontSize: 12, fontFamily: "var(--font-mono)",
+              padding: "4px 12px",
+              borderRadius: "var(--r-pill)",
+              border: `1px solid ${isBelief ? "rgba(167,139,250,0.6)" : "rgba(167,139,250,0.25)"}`,
+              background: isBelief ? "rgba(139,92,246,0.12)" : "rgba(139,92,246,0.05)",
+              color: isBelief ? "rgb(196,167,255)" : "rgba(167,139,250,0.75)",
+              transition: "all var(--dur-fast) var(--ease-standard)",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => {
+              if (!isBelief) {
+                e.currentTarget.style.background = "rgba(139,92,246,0.10)";
+                e.currentTarget.style.borderColor = "rgba(167,139,250,0.45)";
+                e.currentTarget.style.color = "rgb(196,167,255)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isBelief) {
+                e.currentTarget.style.background = "rgba(139,92,246,0.05)";
+                e.currentTarget.style.borderColor = "rgba(167,139,250,0.25)";
+                e.currentTarget.style.color = "rgba(167,139,250,0.75)";
+              }
+            }}
+          >
+            ✨ belief
           </Link>
         </div>
 

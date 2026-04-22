@@ -47,6 +47,8 @@ services:
       dockerfile: frontend/Dockerfile
       target: development
     restart: unless-stopped
+    volumes:
+      - ./frontend/src:/app/frontend/src
     environment:
       VITE_API_URL: http://localhost:3000/api/v1
     ports:
