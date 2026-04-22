@@ -97,6 +97,8 @@ const venueMarketSchema = new Schema(
     logicalEventId: { type: String },
     sourceEventId: { type: String },
     groupItemTitle: { type: String },
+    /** Public web URL to trade this market on the venue (set by worker / seed). */
+    tradingUrl: { type: String },
   },
   { timestamps: true, collection: VENUE_MARKET_COLLECTION, versionKey: false },
 );

@@ -15,6 +15,7 @@ import {
   getVenueEventModel,
   getVenueMarketModel,
 } from '../schemas';
+import { buildKalshiTradingUrl, buildPolymarketTradingUrl } from '../venue-trading-url';
 
 type Status = 'open' | 'closed' | 'resolved';
 
@@ -128,6 +129,9 @@ async function upsertPolymarketEvent(e: PolyApiEvent): Promise<number> {
     if (m.image) venueSet['image'] = m.image;
     if (m.icon) venueSet['icon'] = m.icon;
     if (m.description) venueSet['description'] = m.description;
+
+    const polyUrl = buildPolymarketTradingUrl(e, m);
+    if (polyUrl) venueSet['tradingUrl'] = polyUrl;
 
     await VenueMarket.findOneAndUpdate(
       { venue: 'polymarket', sourceMarketId: m.id },
@@ -350,6 +354,7 @@ async function upsertKalshiEvent(e: KalshiApiEvent): Promise<number> {
       groupItemTitle: e.mutually_exclusive ? m.yes_sub_title : undefined,
     };
     if (m.subtitle) venueSet['description'] = m.subtitle;
+    venueSet['tradingUrl'] = buildKalshiTradingUrl(m.ticker);
 
     await VenueMarket.findOneAndUpdate(
       { venue: 'kalshi', sourceMarketId: m.ticker },

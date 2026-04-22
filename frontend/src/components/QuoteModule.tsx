@@ -1,10 +1,12 @@
-import type { OrderSide, QuoteRoute } from "@vibeahack/shared";
+import type { OrderSide, QuoteRoute, VenueBreakdown } from "@vibeahack/shared";
 import { useState } from "react";
 import { useQuote } from "../api/hooks.js";
+import { tradingUrlForSelectedRoute } from "../trading-url.js";
 
 interface Props {
   logicalMarketId: string;
   outcomes: Array<{ id: string; label: string }>;
+  venueBreakdown: VenueBreakdown[];
 }
 
 function fmtUsd(n: number): string {
@@ -158,14 +160,13 @@ function PreviewRow({ label, value, muted = false }: { label: string; value: Rea
   );
 }
 
-export function QuoteModule({ logicalMarketId, outcomes }: Props) {
+export function QuoteModule({ logicalMarketId, outcomes, venueBreakdown }: Props) {
   const initialOutcomeId = outcomes[0]?.id ?? "";
   const [outcomeId, setOutcomeId] = useState(initialOutcomeId);
   const [side, setSide] = useState<OrderSide>("buy");
   const [dollars, setDollars] = useState(100);
   const [userChoice, setUserChoice] = useState<string | null>(null);
   const [lastRequestKey, setLastRequestKey] = useState("");
-  const [showTooltip, setShowTooltip] = useState(false);
 
   const req = outcomeId && dollars > 0 ? { outcomeId, side, size: Math.max(1, Math.round(dollars / 0.5)) } : null;
   const { data: quote, isLoading, error } = useQuote(logicalMarketId, req);
@@ -184,6 +185,11 @@ export function QuoteModule({ logicalMarketId, outcomes }: Props) {
   const ifWins = selected ? selected.filledSize * 1.0 : 0;
   const profit = ifWins - youPay;
   const pctReturn = youPay > 0 ? (profit / youPay) * 100 : 0;
+
+  const tradeLink = tradingUrlForSelectedRoute(selected, venueBreakdown);
+  const ctaLabel = tradeLink
+    ? `Open in ${tradeLink.label}`
+    : "No venue link available";
 
   return (
     <section style={{
@@ -355,35 +361,53 @@ export function QuoteModule({ logicalMarketId, outcomes }: Props) {
         </div>
       )}
 
-      {/* Execute button */}
-      <div
-        style={{ position: "relative" }}
-        onMouseEnter={() => setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
-      >
-        <button disabled style={{
-          width: "100%",
-          background: "linear-gradient(135deg,#F7C2FF,#5C67FF)",
-          color: "var(--ink-0)", border: 0, borderRadius: 14, padding: "16px",
-          fontFamily: "inherit", fontSize: 15, fontWeight: 600,
-          cursor: "not-allowed", opacity: 0.5,
-          boxShadow: "0 0 40px rgba(92,103,255,.2)",
-          letterSpacing: "-0.005em",
-        }}>
-          Execute trade
-        </button>
-        {showTooltip && (
-          <div style={{
-            position: "absolute", bottom: "calc(100% + 8px)", left: 0, right: 0,
-            background: "var(--bg-section)", border: "1px solid var(--ink-300)",
-            borderRadius: 10, padding: "10px 12px",
-            fontSize: 11, color: "var(--fg-2)", lineHeight: 1.5,
-            boxShadow: "var(--shadow-lg)", pointerEvents: "none", zIndex: 10,
-          }}>
-            Live execution launches with <span style={{ color: "var(--fg-1)" }}>Phase 2</span>.
-            This is a Phase 1 demo of the routing engine.
-          </div>
+      {/* Open venue (external) — first split of selected route */}
+      <div style={{ position: "relative" }}>
+        {tradeLink ? (
+          <a
+            href={tradeLink.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "block",
+              textAlign: "center",
+              textDecoration: "none",
+              width: "100%",
+              background: "linear-gradient(135deg,#F7C2FF,#5C67FF)",
+              color: "var(--ink-0)", border: 0, borderRadius: 14, padding: "16px",
+              fontFamily: "inherit", fontSize: 15, fontWeight: 600,
+              boxShadow: "0 0 40px rgba(92,103,255,.2)",
+              letterSpacing: "-0.005em",
+            }}
+          >
+            {ctaLabel}
+          </a>
+        ) : (
+          <button
+            type="button"
+            disabled
+            style={{
+              width: "100%",
+              background: "linear-gradient(135deg,#F7C2FF,#5C67FF)",
+              color: "var(--ink-0)", border: 0, borderRadius: 14, padding: "16px",
+              fontFamily: "inherit", fontSize: 15, fontWeight: 600,
+              cursor: "not-allowed", opacity: 0.45,
+              boxShadow: "0 0 40px rgba(92,103,255,.15)",
+              letterSpacing: "-0.005em",
+            }}
+          >
+            {ctaLabel}
+          </button>
         )}
+        <p
+          style={{
+            margin: "8px 0 0", fontSize: 11, color: "var(--fg-3)", lineHeight: 1.45, textAlign: "center",
+          }}
+        >
+          {tradeLink
+            ? "Opens the native venue in a new tab. Routes are a quote only."
+            : "No public venue link is stored for this market’s venues."}
+        </p>
       </div>
     </section>
   );

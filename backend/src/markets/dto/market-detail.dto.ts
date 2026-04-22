@@ -49,6 +49,14 @@ export class VenueBreakdownDto implements VenueBreakdown {
   @ApiProperty({ example: "poly-fifa-2026-winner" })
   sourceMarketId!: string;
 
+  @ApiProperty({
+    example: "https://polymarket.com/event/example",
+    nullable: true,
+    required: false,
+    description: "Public web URL to open this market on the venue.",
+  })
+  tradingUrl?: string | null;
+
   @ApiProperty({ type: [VenueBreakdownOutcomeDto] })
   outcomes!: VenueBreakdownOutcomeDto[];
 }

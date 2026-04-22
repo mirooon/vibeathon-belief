@@ -81,6 +81,13 @@ interface PriceHistoryDoc {
   points: Array<{ timestamp: Date; price: number }>;
 }
 
+interface VenueMarketLinkDoc {
+  venue: Venue;
+  sourceMarketId: string;
+  logicalMarketId: string;
+  tradingUrl?: string;
+}
+
 @Injectable()
 export class MarketsService {
   private readonly logger = new Logger(MarketsService.name);
@@ -89,15 +96,12 @@ export class MarketsService {
     @InjectModel(LOGICAL_MARKET_MODEL)
     private readonly logicalMarketModel: Model<LogicalMarketDoc>,
     @InjectModel(VENUE_MARKET_MODEL)
-    private readonly venueMarketModel: Model<unknown>,
+    private readonly venueMarketModel: Model<VenueMarketLinkDoc>,
     @InjectModel(ORDERBOOK_SNAPSHOT_MODEL)
     private readonly snapshotModel: Model<SnapshotDoc>,
     @InjectModel(PRICE_HISTORY_MODEL)
     private readonly priceHistoryModel: Model<PriceHistoryDoc>,
-  ) {
-    // Reference `venueMarketModel` so Nest retains the DI — reads use it in Phase 2.
-    void this.venueMarketModel;
-  }
+  ) {}
 
   async list(
     filter: {
@@ -230,6 +234,21 @@ export class MarketsService {
       },
     );
 
+    const linkRows =
+      (await this.venueMarketModel
+        .find({ logicalMarketId: id })
+        .lean<VenueMarketLinkDoc[]>()
+        .exec()) ?? [];
+    const tradingUrlByKey = new Map<string, string | null>();
+    for (const row of linkRows) {
+      const key = `${row.venue}:${row.sourceMarketId}`;
+      const u = row.tradingUrl;
+      tradingUrlByKey.set(
+        key,
+        typeof u === "string" && u.length > 0 ? u : null,
+      );
+    }
+
     const venueBreakdown: VenueBreakdown[] = snapshots.map((snap) => {
       const outcomes: VenueBreakdownOutcome[] = snap.outcomes.map((o) => ({
         outcomeId: o.canonicalOutcomeId,
@@ -238,10 +257,12 @@ export class MarketsService {
         bidDepth: o.bids.reduce((s, l) => s + l.size, 0),
         askDepth: o.asks.reduce((s, l) => s + l.size, 0),
       }));
+      const tKey = `${snap.venue}:${snap.sourceMarketId}`;
       return {
         venue: snap.venue,
         sourceMarketId: snap.sourceMarketId,
         outcomes,
+        tradingUrl: tradingUrlByKey.get(tKey) ?? null,
       };
     });
 

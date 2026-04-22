@@ -83,6 +83,7 @@ export function Market() {
             <QuoteModule
               logicalMarketId={market.id}
               outcomes={market.outcomes}
+              venueBreakdown={market.venueBreakdown}
             />
           ) : (
             <div className="panel">

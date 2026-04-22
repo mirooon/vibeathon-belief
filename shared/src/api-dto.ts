@@ -79,6 +79,8 @@ export const VenueBreakdownSchema = z.object({
   venue: VenueSchema,
   sourceMarketId: z.string().min(1),
   outcomes: z.array(VenueBreakdownOutcomeSchema),
+  /** Public web URL to open this market on the venue. Null/omitted when unknown. */
+  tradingUrl: z.string().url().nullable().optional(),
 });
 export type VenueBreakdown = z.infer<typeof VenueBreakdownSchema>;
 

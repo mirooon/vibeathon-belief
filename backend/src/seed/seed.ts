@@ -82,6 +82,16 @@ export async function seed(options: SeedOptions): Promise<SeedReport> {
     priceHistorySchema,
   );
 
+  /**
+   * Demo trading links for a few fixture ids so the market page CTA works
+   * without the live Polymarket/Kalshi worker. Keys are `${venue}:${sourceMarketId}`.
+   */
+  const seedVenueTradingUrl: Record<string, string> = {
+    "polymarket:poly-fifa-arg": "https://polymarket.com/event/2026-fifa-wc-demo",
+    "polymarket:poly-btc-100k-2026": "https://polymarket.com/event/bitcoin-above-100k-dec-2026-483",
+    "kalshi:kalshi-fifa-arg": "https://trading.kalshi.com/market/kalshi-fifa-arg",
+  };
+
   log("[seed] dropping collections");
   await Promise.all([
     LogicalMarketModel.deleteMany({}).exec(),
@@ -134,6 +144,8 @@ export async function seed(options: SeedOptions): Promise<SeedReport> {
           `adapter ${ref.venue} does not know market ${ref.sourceMarketId} — fixture/matcher mismatch`,
         );
       }
+      const tKey = `${ref.venue}:${ref.sourceMarketId}`;
+      const tradingUrl = seedVenueTradingUrl[tKey];
       await VenueMarketModel.create({
         venue: venueMarket.venue,
         sourceMarketId: venueMarket.sourceMarketId,
@@ -144,6 +156,7 @@ export async function seed(options: SeedOptions): Promise<SeedReport> {
         status: venueMarket.status,
         quoteCurrency: venueMarket.quoteCurrency,
         outcomes: venueMarket.outcomes,
+        ...(tradingUrl ? { tradingUrl } : {}),
       });
       venueMarketCount += 1;
 
